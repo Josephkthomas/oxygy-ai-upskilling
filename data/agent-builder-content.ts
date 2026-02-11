@@ -1,6 +1,6 @@
 // Agent Builder Toolkit — Static Content & Configuration
 
-// Good examples — strong candidates for Level 2 agents
+// Good examples — strong candidates for a Level 2 agent
 export const GOOD_EXAMPLES = [
   {
     name: 'Survey Analyzer',
@@ -16,11 +16,6 @@ export const GOOD_EXAMPLES = [
     name: 'Proposal Drafter',
     task: 'Draft a first-pass client proposal based on project brief inputs, incorporating relevant case studies, methodology descriptions, and team structure recommendations',
     inputData: 'Project brief documents (Word or PDF) containing client background, objectives, scope, timeline, and budget. Plus an internal case study library with past project descriptions and outcomes.',
-  },
-  {
-    name: 'Status Report Generator',
-    task: 'Generate a weekly team status report consolidating updates from multiple project trackers, flagging risks, and summarizing progress against OKRs for leadership review',
-    inputData: 'Jira or Asana exports with task status, assignee, and sprint data. Plus a shared spreadsheet with OKR progress percentages and brief comments from each team lead.',
   },
 ] as const;
 

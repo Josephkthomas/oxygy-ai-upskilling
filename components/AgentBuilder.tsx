@@ -19,7 +19,7 @@ function getScoreColor(score: number) {
 }
 
 function getVerdictText(score: number) {
-  if (score >= 80) return 'Strong candidate for a custom agent';
+  if (score >= 80) return 'Strong candidate for a Level 2 agent';
   if (score >= 50) return 'Could benefit from an agent \u2014 with some caveats';
   return 'Better suited to ad-hoc prompting for now';
 }
@@ -196,10 +196,42 @@ function StepFourSkeleton() {
 /* ─── STEP CARD DEFINITIONS ─── */
 
 const STEP_CARDS = [
-  { num: 1, icon: '\u{1F50D}', title: 'Agent Readiness', shortDesc: 'Is this task a good fit for a custom agent?' },
-  { num: 2, icon: '\u{1F4D0}', title: 'Output Format', shortDesc: 'Define the structured format your agent produces.' },
-  { num: 3, icon: '\u{1F4DD}', title: 'System Prompt', shortDesc: 'Get a complete, ready-to-use system prompt.' },
-  { num: 4, icon: '\u{2705}', title: 'Accountability', shortDesc: 'Add human verification checks for guardrails.' },
+  {
+    num: 1, icon: '\u{1F50D}', title: 'Agent Readiness',
+    shortDesc: 'Is this task a good fit for a Level 2 agent?',
+    education: {
+      heading: 'Why does readiness matter?',
+      body: 'Not every task needs a custom Level 2 agent. This step evaluates your task across five dimensions — frequency, consistency, shareability, complexity, and standardization risk — to determine whether building a reusable agent is the right investment, or if ad-hoc prompting (Level 1) is sufficient.',
+      keyPoint: 'A strong score means the task is repeated often enough, structured enough, and shared widely enough to justify the upfront effort of agent design.',
+    },
+  },
+  {
+    num: 2, icon: '\u{1F4D0}', title: 'Output Format',
+    shortDesc: 'Define the structured format your Level 2 agent produces.',
+    education: {
+      heading: 'Why does output format matter?',
+      body: 'The difference between Level 1 prompting and a Level 2 agent is structure. By defining an explicit output format (both human-readable and JSON), your agent produces identical results every time — enabling dashboards, reports, and automated workflows downstream.',
+      keyPoint: 'JSON templates turn variable AI outputs into reliable, machine-readable data that your team can build on.',
+    },
+  },
+  {
+    num: 3, icon: '\u{1F4DD}', title: 'System Prompt',
+    shortDesc: 'Get a complete, ready-to-use prompt for your Level 2 agent.',
+    education: {
+      heading: 'Why does the system prompt matter?',
+      body: 'A system prompt is the instruction set that defines how your Level 2 agent behaves. It incorporates the Prompt Blueprint framework from Level 1 — Role, Context, Task, Format, Steps, and Quality Checks — into a single, comprehensive prompt ready for any AI platform.',
+      keyPoint: 'A well-crafted system prompt is what transforms a generic AI chatbot into a purpose-built Level 2 agent for your specific task.',
+    },
+  },
+  {
+    num: 4, icon: '\u{2705}', title: 'Accountability',
+    shortDesc: 'Add human-in-the-loop checks for responsible AI use.',
+    education: {
+      heading: 'Why do accountability checks matter?',
+      body: 'Every Level 2 agent should include human-in-the-loop verification. These checks ensure the agent cites its sources, flags uncertainty, and prompts a human review before outputs are shared — reducing the risk of AI hallucinations or errors going unnoticed.',
+      keyPoint: 'Accountability checks are the guardrails that make the difference between a risky automation and a trustworthy Level 2 agent.',
+    },
+  },
 ];
 
 const STEP_SKELETONS = [StepOneSkeleton, StepTwoSkeleton, StepThreeSkeleton, StepFourSkeleton];
@@ -305,10 +337,14 @@ export const AgentBuilder: React.FC = () => {
   };
 
   const handleCardToggle = (idx: number) => {
-    // Only allow toggling after content has been revealed
-    if (stepsRevealed > idx) {
-      setExpandedSteps(prev => ({ ...prev, [idx]: !prev[idx] }));
-    }
+    setExpandedSteps(prev => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
+  const scrollToCards = () => {
+    setExpandedSteps(prev => ({ ...prev, 0: true }));
+    setTimeout(() => {
+      cardsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const toggleCheck = (idx: number) => {
@@ -402,7 +438,7 @@ export const AgentBuilder: React.FC = () => {
           )}
           <div className="flex items-center gap-2 mb-3">
             <Bot size={18} className="text-[#5B6DC2]" />
-            <h4 className="text-[14px] font-semibold text-[#1A202C]">Level 2: Custom Agent</h4>
+            <h4 className="text-[14px] font-semibold text-[#1A202C]">Level 2 Agent</h4>
           </div>
           <ul className="space-y-2">
             {result!.readiness.level2_points.map((point, i) => (
@@ -642,17 +678,35 @@ export const AgentBuilder: React.FC = () => {
                 Teams that use standardized AI agents see up to <span className="text-[#5B6DC2] font-bold">3x faster adoption</span> across departments
                 than those relying on ad-hoc prompts alone.
               </p>
-              <p className="text-[15px] text-[#718096] leading-[1.6] mb-6 max-w-3xl mx-auto">
-                The difference between a one-off prompt and a custom agent is the difference between a single answer and a reusable tool your entire team can rely on.
+              <p className="text-[15px] text-[#718096] leading-[1.6] max-w-3xl mx-auto">
+                The difference between a one-off prompt and a Level 2 agent is the difference between a single answer and a reusable tool your entire team can rely on.
               </p>
-
-              <button
-                onClick={scrollToInput}
-                className="inline-flex items-center gap-2 px-7 py-3 bg-[#5B6DC2] text-white text-[15px] font-semibold rounded-full hover:bg-[#4A5AB0] transition-colors"
-              >
-                Describe your task below <ChevronDown size={15} className="animate-bounce-down" />
-              </button>
             </div>
+          </div>
+        </div>
+
+        {/* ─── 4-STEP OVERVIEW ─── */}
+        <div className="mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {STEP_CARDS.map((step) => (
+              <div key={step.num} className="flex items-center gap-3 bg-[#F7FAFC] border border-[#E2E8F0] rounded-xl px-4 py-3.5">
+                <div className="w-8 h-8 rounded-full bg-[#C3D0F5] flex items-center justify-center text-[14px] font-bold text-[#5B6DC2] shrink-0">
+                  {step.num}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[14px] font-bold text-[#1A202C] leading-tight">{step.icon} {step.title}</p>
+                  <p className="text-[12px] text-[#718096] leading-snug mt-0.5">{step.shortDesc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-4">
+            <button
+              onClick={scrollToCards}
+              className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[#5B6DC2] hover:text-[#4A5AB0] transition-colors"
+            >
+              Learn more about each of these stages <ChevronDown size={14} />
+            </button>
           </div>
         </div>
 
@@ -666,44 +720,37 @@ export const AgentBuilder: React.FC = () => {
           }}
         >
           <h2 className="text-[16px] font-bold text-[#1A202C] mb-4">
-            Describe the task your agent should handle
+            Describe the task your Level 2 agent should handle
           </h2>
 
-          {/* Example clusters */}
-          <div className="mb-5">
-            <div className="mb-3">
-              <span className="text-[11px] font-semibold text-[#2C7A7B] uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                <Check size={12} /> Good candidates for a custom agent
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {GOOD_EXAMPLES.map((ex) => (
-                  <button key={ex.name} onClick={() => handleExampleClick(ex.task, ex.inputData)}
-                    className="px-3.5 py-1.5 rounded-full text-[13px] border border-[#A8F0E0] bg-[rgba(168,240,224,0.08)] text-[#2C7A7B] hover:border-[#38B2AC] hover:bg-[rgba(168,240,224,0.2)] transition-colors"
-                  >
-                    {ex.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <span className="text-[11px] font-semibold text-[#B7791F] uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                <ArrowRight size={12} /> Better as ad-hoc prompts
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {NOT_RECOMMENDED_EXAMPLES.map((ex) => (
-                  <button key={ex.name} onClick={() => handleExampleClick(ex.task, ex.inputData)}
-                    className="px-3.5 py-1.5 rounded-full text-[13px] border border-[#FBCEB1] bg-[rgba(251,206,177,0.08)] text-[#B7791F] hover:border-[#E57A5A] hover:bg-[rgba(251,206,177,0.2)] transition-colors"
-                  >
-                    {ex.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* Example pills — single row */}
+          <div className="flex flex-wrap items-center gap-2 mb-5">
+            <span className="text-[11px] font-semibold text-[#2C7A7B] uppercase tracking-wider shrink-0">
+              Good for a Level 2 agent:
+            </span>
+            {GOOD_EXAMPLES.map((ex) => (
+              <button key={ex.name} onClick={() => handleExampleClick(ex.task, ex.inputData)}
+                className="px-3 py-1 rounded-full text-[13px] border border-[#A8F0E0] bg-[rgba(168,240,224,0.08)] text-[#2C7A7B] hover:border-[#38B2AC] hover:bg-[rgba(168,240,224,0.2)] transition-colors"
+              >
+                {ex.name}
+              </button>
+            ))}
+            <span className="text-[#E2E8F0] mx-1">|</span>
+            <span className="text-[11px] font-semibold text-[#B7791F] uppercase tracking-wider shrink-0">
+              Better as ad-hoc:
+            </span>
+            {NOT_RECOMMENDED_EXAMPLES.map((ex) => (
+              <button key={ex.name} onClick={() => handleExampleClick(ex.task, ex.inputData)}
+                className="px-3 py-1 rounded-full text-[13px] border border-[#FBCEB1] bg-[rgba(251,206,177,0.08)] text-[#B7791F] hover:border-[#E57A5A] hover:bg-[rgba(251,206,177,0.2)] transition-colors"
+              >
+                {ex.name}
+              </button>
+            ))}
           </div>
 
           {/* Input 1: Task Description */}
           <label className="block text-[13px] font-semibold text-[#1A202C] mb-1.5">
-            What should this agent do?
+            What should this Level 2 agent do?
           </label>
           <textarea
             value={taskDescription} onChange={e => setTaskDescription(e.target.value)}
@@ -719,7 +766,7 @@ export const AgentBuilder: React.FC = () => {
           {/* Input 2: Input Data */}
           <div className="mt-4">
             <label className="text-[13px] font-semibold text-[#1A202C] mb-1.5 flex items-center gap-2">
-              What data will this agent work with?
+              What data will this Level 2 agent work with?
               <span className="text-[11px] font-semibold text-[#5B6DC2] bg-[rgba(195,208,245,0.3)] rounded-[10px] px-2 py-0.5">
                 Recommended
               </span>
@@ -736,24 +783,21 @@ export const AgentBuilder: React.FC = () => {
             />
           </div>
 
-          {/* Educational callout */}
-          <div className="mt-3 bg-white border border-[#E2E8F0] border-l-[3px] border-l-[#5B6DC2] rounded-lg px-4 py-3.5">
-            <p className="text-[13px] font-semibold text-[#1A202C] mb-1 flex items-center gap-1.5">
-              <Info size={14} className="text-[#5B6DC2]" />
-              Why does input data matter?
-            </p>
-            <p className="text-[13px] text-[#4A5568] leading-[1.6]">
-              The type of data your agent processes determines how its output should be structured,
-              what evidence it should cite, and what human checks are needed.
-            </p>
-          </div>
-
-          {/* CTA Button */}
-          <div className="mt-5 flex justify-end">
+          {/* Callout + CTA button side by side */}
+          <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-end gap-4">
+            <div className="flex-1 bg-white border border-[#E2E8F0] border-l-[3px] border-l-[#5B6DC2] rounded-lg px-4 py-3">
+              <p className="text-[13px] font-semibold text-[#1A202C] mb-0.5 flex items-center gap-1.5">
+                <Info size={14} className="text-[#5B6DC2]" />
+                Why does input data matter?
+              </p>
+              <p className="text-[12px] text-[#4A5568] leading-[1.5]">
+                The type of data your Level 2 agent processes determines how its output is structured, what evidence it cites, and what human checks are needed.
+              </p>
+            </div>
             <button
               onClick={handleDesign}
               disabled={!taskDescription.trim() || isLoading}
-              className="flex items-center gap-2 px-7 py-3 rounded-full text-[15px] font-semibold text-white transition-all"
+              className="flex items-center justify-center gap-2 px-7 py-3 rounded-full text-[15px] font-semibold text-white transition-all shrink-0"
               style={{
                 backgroundColor: '#5B6DC2',
                 opacity: (!taskDescription.trim() || isLoading) ? 0.5 : 1,
@@ -768,7 +812,7 @@ export const AgentBuilder: React.FC = () => {
                   Designing...
                 </>
               ) : (
-                <>Design My Agent <ArrowRight size={16} /></>
+                <>Design My Level 2 Agent <ArrowRight size={16} /></>
               )}
             </button>
           </div>
@@ -788,7 +832,7 @@ export const AgentBuilder: React.FC = () => {
             const hasContent = stepsRevealed > idx && result !== null;
             const showSkeleton = isExpanded && stepsRevealed <= idx && (isLoading || result !== null);
             const showContent = isExpanded && hasContent;
-            const canToggle = hasContent;
+            const showEducation = isExpanded && !hasContent && !showSkeleton;
             const StepSkeleton = STEP_SKELETONS[idx];
 
             const stepStatus: 'complete' | 'loading' | 'pending' =
@@ -801,18 +845,17 @@ export const AgentBuilder: React.FC = () => {
                 key={step.num}
                 className="bg-white border rounded-xl overflow-hidden transition-all duration-200"
                 style={{
-                  borderColor: stepStatus === 'pending' ? '#E2E8F0' : '#C3D0F5',
-                  borderLeftWidth: stepStatus !== 'pending' ? '4px' : '1px',
-                  borderLeftColor: stepStatus !== 'pending' ? '#5B6DC2' : '#E2E8F0',
+                  borderColor: isExpanded || stepStatus !== 'pending' ? '#C3D0F5' : '#E2E8F0',
+                  borderLeftWidth: isExpanded || stepStatus !== 'pending' ? '4px' : '1px',
+                  borderLeftColor: isExpanded || stepStatus !== 'pending' ? '#5B6DC2' : '#E2E8F0',
                 }}
               >
-                {/* ── Card Header (always visible) ── */}
+                {/* ── Card Header (always clickable) ── */}
                 <div
-                  className="flex items-center gap-4 px-5 sm:px-6 py-4 select-none transition-colors"
-                  style={{ cursor: canToggle ? 'pointer' : 'default' }}
-                  onClick={() => canToggle && handleCardToggle(idx)}
-                  role={canToggle ? 'button' : undefined}
-                  aria-expanded={canToggle ? isExpanded : undefined}
+                  className="flex items-center gap-4 px-5 sm:px-6 py-4 select-none cursor-pointer hover:bg-[#FAFBFF] transition-colors"
+                  onClick={() => handleCardToggle(idx)}
+                  role="button"
+                  aria-expanded={isExpanded}
                 >
                   {/* Step number / status circle */}
                   <div
@@ -839,12 +882,10 @@ export const AgentBuilder: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Chevron (only when toggleable) */}
-                  {canToggle && (
-                    <div className="shrink-0 text-[#A0AEC0]">
-                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </div>
-                  )}
+                  {/* Chevron (always visible) */}
+                  <div className="shrink-0 text-[#A0AEC0]">
+                    {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  </div>
                 </div>
 
                 {/* ── Expandable Content ── */}
@@ -856,6 +897,19 @@ export const AgentBuilder: React.FC = () => {
                     <div className="px-5 sm:px-6 pb-6 pt-1">
                       {showSkeleton && <StepSkeleton />}
                       {showContent && STEP_RENDERERS[idx]()}
+                      {showEducation && (
+                        <div className="rounded-xl p-5" style={{ background: 'rgba(195, 208, 245, 0.1)', border: '1px solid #E2E8F0' }}>
+                          <h4 className="text-[15px] font-bold text-[#1A202C] mb-2">{step.education.heading}</h4>
+                          <p className="text-[14px] text-[#4A5568] leading-[1.7] mb-3">{step.education.body}</p>
+                          <div className="flex items-start gap-2 bg-white rounded-lg px-4 py-3 border border-[#C3D0F5]">
+                            <span className="text-[#5B6DC2] text-[14px] mt-0.5 shrink-0">💡</span>
+                            <p className="text-[13px] text-[#2D3748] leading-[1.6] font-medium">{step.education.keyPoint}</p>
+                          </div>
+                          <p className="text-[13px] text-[#718096] mt-3 italic">
+                            Describe your task above and click "Design My Level 2 Agent" to see personalized results for this step.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
