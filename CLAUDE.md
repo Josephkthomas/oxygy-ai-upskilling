@@ -58,6 +58,20 @@ Interactive multi-section website for Oxygy's AI Center of Excellence. Showcases
 - No center-aligned body text
 - No oversized buttons
 
+## Git Workflow
+
+**Repository:** https://github.com/Josephkthomas/oxygy-ai-upskilling
+**Branch:** `main`
+
+After completing any feature, bug fix, or meaningful change:
+1. Stage the changed files with `git add` (specific files, not `git add .`)
+2. Commit with a clear message describing the change
+3. Push to `origin main` with `git push`
+
+Do this automatically at the end of every task — do not wait for the user to ask. If a task involves multiple related changes, commit them together as one logical unit. If a task involves unrelated changes, use separate commits.
+
+Never commit `.env.local`, credentials, or large binary files.
+
 ## Reference
 - Full content spec: OXYGY_AI_UPSKILLING_SYSTEM_PROMPT.md
 - PDF content source: OXYGY_AI_Upskilling.pdf
