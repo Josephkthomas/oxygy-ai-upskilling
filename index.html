@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="https://oxygy.com/wp-content/uploads/2019/11/cropped-favicon-32x32.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Oxygy AI Upskilling Center of Excellence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400;1,9..40,500&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"DM Sans"', 'sans-serif'],
+            },
+            colors: {
+              navy: {
+                900: '#1A202C',
+                800: '#2D3748',
+                700: '#4A5568',
+              },
+              teal: {
+                DEFAULT: '#38B2AC',
+                dark: '#2C9A94',
+                light: '#B2F5EA',
+                bg: '#E6FFFA',
+              },
+              oxygy: {
+                lavender: '#C3D0F5',
+                yellow: '#F7E8A4',
+                peach: '#F5B8A0',
+                mint: '#A8F0E0',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Smooth scrolling */
+      html {
+        scroll-behavior: smooth;
+      }
+      
+      /* Custom Animations */
+      @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+        100% { transform: translateY(0px); }
+      }
+      
+      @keyframes pulse-ring {
+        0% { transform: scale(0.95); opacity: 0.8; }
+        50% { transform: scale(1.05); opacity: 1; }
+        100% { transform: scale(0.95); opacity: 0.8; }
+      }
+
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
+      }
+      
+      .animate-pulse-slow {
+        animation: pulse-ring 3s ease-in-out infinite;
+      }
+
+      /* Hero orbital ring idle rotation */
+      @keyframes hero-ring-rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .hero-ring-rotate-slow {
+        animation: hero-ring-rotate 60s linear infinite;
+        transform-origin: 250px 250px;
+      }
+      .hero-ring-rotate-slow-reverse {
+        animation: hero-ring-rotate 45s linear infinite reverse;
+        transform-origin: 250px 250px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hero-ring-rotate-slow,
+        .hero-ring-rotate-slow-reverse {
+          animation: none;
+        }
+      }
+
+      /* Hide scrollbar for clean UI */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
