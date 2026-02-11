@@ -180,13 +180,22 @@ Generate a complete, ready-to-use system prompt for this agent that incorporates
 
 Mark each section of the prompt with labels: [ROLE], [CONTEXT], [TASK], [OUTPUT FORMAT], [STEPS], [QUALITY CHECKS] — so the frontend can apply color-coding.
 
-SECTION 4: HUMAN-IN-THE-LOOP CHECKS
-Based on the task AND the input data type, generate 3-5 specific accountability checks. Each check must include:
-- name: A short, clear name for the check
+SECTION 4: BUILT-IN ACCOUNTABILITY FEATURES
+The goal here is NOT to remind humans to "review the output" — that's obvious and expected. Instead, design 3-5 specific features that are built into the agent's prompt to actively support human oversight. Each feature should describe how the agent itself is designed to make verification easy and effective.
+
+Focus on what the agent PROVIDES to support the reviewer:
+- Source citations (row numbers, timestamps, page references, speaker names)
+- Confidence scores or uncertainty flags for each conclusion
+- Reasoning trails that show how the agent arrived at its conclusions
+- Data coverage summaries (what was analyzed vs. what was skipped)
+- Alternative interpretations or dissenting patterns the agent considered
+
+Each accountability feature must include:
+- name: A short, clear name for this agent behavior (e.g., "Source Citation", "Confidence Scoring", "Reasoning Trail")
 - severity: "critical", "important", or "recommended"
-- what_to_verify: 1-2 sentences on what the human should review
-- why_it_matters: 1-2 sentences on the risk if this isn't checked
-- prompt_instruction: The exact text to add to the agent's prompt to enforce this check
+- what_to_verify: 1-2 sentences describing what the agent provides or does (NOT what the human should check — frame it as "The agent includes...", "The agent flags...", "The agent provides...")
+- why_it_matters: 1-2 sentences on how this specific agent behavior helps the reviewer do their job faster and more effectively
+- prompt_instruction: The exact text to add to the agent's prompt to enforce this behavior
 
 RESPONSE FORMAT:
 You must respond with the following JSON structure ONLY — no markdown, no extra text:
@@ -306,6 +315,221 @@ You must respond with the following JSON structure ONLY — no markdown, no extr
   };
 }
 
+function workflowDesignProxyPlugin(apiKey: string, model: string): Plugin {
+  const pathAPrompt = `You are the Oxygy Workflow Architect — an expert in designing AI-powered automation workflows. You help users map their business processes into structured, multi-step workflows using a node-based system.
+
+You will receive a description of a process the user wants to automate, and optionally a description of their existing tools and systems.
+
+Your job is to design an optimal workflow using nodes from three layers:
+
+LAYER 1 — DATA INPUT NODES:
+input-excel, input-gsheets, input-webhook, input-api, input-form, input-email, input-schedule, input-database, input-file, input-crm, input-chat, input-transcript
+
+LAYER 2 — PROCESSING NODES:
+proc-ai-agent, proc-ai-loop, proc-text-extract, proc-code, proc-mapper, proc-filter, proc-merge, proc-sentiment, proc-classifier, proc-summarizer, proc-translate, proc-validator, proc-human-review
+
+LAYER 3 — DATA OUTPUT NODES:
+output-excel, output-gsheets, output-database, output-email, output-slack, output-pdf, output-word, output-pptx, output-api, output-crm, output-dashboard, output-notification, output-calendar, output-kb
+
+RULES:
+- Every workflow must have at least one node from each layer
+- Workflows typically have 4–10 nodes total
+- Node order matters: the sequence should reflect a logical data flow
+- Include a proc-human-review node whenever AI output feeds directly into client-facing, decision-critical, or externally shared deliverables
+- Choose nodes that match the user's described tools and systems
+- If the user mentions specific tools (e.g., "Microsoft Forms"), map to the closest node (e.g., input-form)
+- Provide a brief description for each node explaining its specific role in THIS workflow (not a generic description)
+
+RESPONSE FORMAT (JSON only, no markdown):
+
+{
+  "workflow_name": "A short descriptive name for this workflow",
+  "workflow_description": "A 2-3 sentence summary of what this workflow does end-to-end",
+  "nodes": [
+    {
+      "id": "node-1",
+      "node_id": "input-form",
+      "name": "Survey Submission",
+      "custom_description": "Receives client engagement survey responses submitted via Microsoft Forms. Each submission triggers the workflow automatically.",
+      "layer": "input"
+    },
+    {
+      "id": "node-2",
+      "node_id": "proc-ai-agent",
+      "name": "Theme Analysis",
+      "custom_description": "A Level 2 AI agent analyzes each survey response to identify recurring themes, categorize feedback by topic, and score sentiment.",
+      "layer": "processing"
+    }
+  ]
+}
+
+The "nodes" array must be ordered sequentially — node-1 connects to node-2, node-2 connects to node-3, and so on. This order will be rendered directly as the workflow flow.
+
+The "name" field is a SHORT custom label for the node in this specific workflow context (e.g., "Theme Analysis" not "AI Agent"). Max 20 characters.
+
+The "node_id" must exactly match one of the node IDs listed above.`;
+
+  const pathBPrompt = `You are the Oxygy Workflow Reviewer — an expert in evaluating and improving AI-powered automation workflows.
+
+You will receive:
+1. A description of the process being automated
+2. Optionally, a description of existing tools and systems
+3. The user's manually-built workflow as an ordered list of nodes
+4. Optionally, the user's rationale for their design decisions
+
+Your job is to review the user's workflow and suggest improvements. You may:
+- ADD nodes that are missing (e.g., a human review step, a data validation step, a filter/router for different data types)
+- REMOVE nodes that are redundant or unnecessary
+- REORDER nodes if the sequence could be improved
+- Keep nodes unchanged if they are well-placed
+
+IMPORTANT PRINCIPLES:
+- There is no single "right" way to build a workflow. Acknowledge the user's design decisions and explain trade-offs rather than prescribing one approach.
+- Be specific about WHY each change is suggested — reference the user's context and data types.
+- If the user provided a rationale, respond to it directly. Validate good decisions and gently explain where improvements could help.
+- Always explain the risks of NOT making a suggested change.
+
+AVAILABLE NODES:
+
+LAYER 1 — DATA INPUT NODES:
+input-excel, input-gsheets, input-webhook, input-api, input-form, input-email, input-schedule, input-database, input-file, input-crm, input-chat, input-transcript
+
+LAYER 2 — PROCESSING NODES:
+proc-ai-agent, proc-ai-loop, proc-text-extract, proc-code, proc-mapper, proc-filter, proc-merge, proc-sentiment, proc-classifier, proc-summarizer, proc-translate, proc-validator, proc-human-review
+
+LAYER 3 — DATA OUTPUT NODES:
+output-excel, output-gsheets, output-database, output-email, output-slack, output-pdf, output-word, output-pptx, output-api, output-crm, output-dashboard, output-notification, output-calendar, output-kb
+
+RESPONSE FORMAT (JSON only, no markdown):
+
+{
+  "overall_assessment": "A 2-3 sentence summary of the workflow's strengths and areas for improvement",
+  "suggested_workflow": [
+    {
+      "id": "node-1",
+      "node_id": "input-form",
+      "name": "Survey Submission",
+      "custom_description": "Receives client engagement survey responses...",
+      "layer": "input",
+      "status": "unchanged"
+    },
+    {
+      "id": "node-2",
+      "node_id": "proc-validator",
+      "name": "Data Quality Check",
+      "custom_description": "Validates that all required fields are present...",
+      "layer": "processing",
+      "status": "added"
+    }
+  ],
+  "changes": [
+    {
+      "type": "added",
+      "node_id": "proc-validator",
+      "node_name": "Data Quality Check",
+      "rationale": "Adding a validation step before AI processing ensures that incomplete or malformed survey responses are flagged before analysis. Without this, the AI agent may produce unreliable theme analysis from partial data."
+    }
+  ]
+}
+
+The "status" field for each node in suggested_workflow must be one of: "unchanged", "added", or "removed" (removed nodes are still included in the array for rendering purposes, but with status "removed").
+
+For the user's original workflow, you will receive nodes with IDs like "user-node-1", "user-node-2", etc. In your suggested_workflow, keep the same IDs for unchanged nodes and use new IDs for added nodes.`;
+
+  return {
+    name: 'workflow-design-proxy',
+    configureServer(server) {
+      server.middlewares.use('/api/design-workflow', (req: Connect.IncomingMessage, res: ServerResponse) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          return;
+        }
+
+        if (!apiKey || apiKey === 'PLACEHOLDER_API_KEY') {
+          res.statusCode = 503;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: 'API key not configured' }));
+          return;
+        }
+
+        let body = '';
+        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('end', async () => {
+          try {
+            const { mode, task_description, tools_and_systems, user_workflow, user_rationale } = JSON.parse(body);
+
+            const systemPrompt = mode === 'auto_generate' ? pathAPrompt : pathBPrompt;
+
+            let userMessage: string;
+            if (mode === 'auto_generate') {
+              userMessage = `Process to automate: ${task_description}\n\nExisting tools and systems: ${tools_and_systems || 'Not specified'}`;
+            } else {
+              const nodeList = (user_workflow || [])
+                .map((n: { id: string; node_id: string; name: string; layer: string }) => `  ${n.id}: ${n.node_id} ("${n.name}") [${n.layer}]`)
+                .join('\n');
+              userMessage = `Process to automate: ${task_description}\n\nExisting tools and systems: ${tools_and_systems || 'Not specified'}\n\nUser's workflow:\n${nodeList}\n\nUser's design rationale: ${user_rationale || 'Not provided'}`;
+            }
+
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const geminiResponse = await fetch(geminiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                system_instruction: {
+                  parts: [{ text: systemPrompt }],
+                },
+                contents: [
+                  {
+                    role: 'user',
+                    parts: [{ text: userMessage }],
+                  },
+                ],
+                generationConfig: {
+                  temperature: 0.7,
+                  responseMimeType: 'application/json',
+                },
+              }),
+            });
+
+            if (!geminiResponse.ok) {
+              const errText = await geminiResponse.text();
+              console.error('Gemini API error (workflow design):', errText);
+              res.statusCode = 502;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'AI service error' }));
+              return;
+            }
+
+            const data = await geminiResponse.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+            let parsed;
+            try {
+              const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+              parsed = JSON.parse(cleaned);
+            } catch {
+              console.error('Failed to parse Gemini response (workflow design):', text);
+              res.statusCode = 502;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'Failed to parse AI response' }));
+              return;
+            }
+
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(parsed));
+          } catch (err) {
+            console.error('Proxy error (workflow design):', err);
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Internal server error' }));
+          }
+        });
+      });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const geminiModel = env.GEMINI_MODEL || 'gemini-2.0-flash';
@@ -319,6 +543,7 @@ export default defineConfig(({ mode }) => {
       react(),
       geminiProxyPlugin(env.GEMINI_API_KEY, geminiModel),
       agentDesignProxyPlugin(env.GEMINI_API_KEY, geminiModel),
+      workflowDesignProxyPlugin(env.GEMINI_API_KEY, geminiModel),
     ],
     resolve: {
       alias: {

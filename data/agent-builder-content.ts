@@ -104,20 +104,29 @@ The prompt should be professional, detailed, and immediately usable in ChatGPT C
 
 Mark each section of the prompt with labels: [ROLE], [CONTEXT], [TASK], [OUTPUT FORMAT], [STEPS], [QUALITY CHECKS] — so the frontend can apply color-coding to match the Prompt Blueprint framework from Level 1.
 
-SECTION 4: HUMAN-IN-THE-LOOP CHECKS
-Based on the task AND the input data type, generate 3-5 specific accountability checks. Each check must include:
-- name: A short, clear name for the check
-- severity: "critical", "important", or "recommended"
-- what_to_verify: 1-2 sentences on what the human should review
-- why_it_matters: 1-2 sentences on the risk if this isn't checked
-- prompt_instruction: The exact text to add to the agent's prompt to enforce this check
+SECTION 4: BUILT-IN ACCOUNTABILITY FEATURES
+The goal here is NOT to remind humans to "review the output" — that's obvious and expected. Instead, design 3-5 specific features that are built into the agent's prompt to actively support human oversight. Each feature should describe how the agent itself is designed to make verification easy and effective.
 
-Tailor the checks to the specific data type:
-- For survey data: Include row-level references, response counts, confidence indicators
-- For transcripts: Include timestamps, speaker attribution, context preservation
-- For documents: Include page/section references, source citations, cross-referencing
-- For financial data: Include calculation verification, source cell references, assumption flagging
-- For general tasks: Include reasoning trails, alternative perspectives, confidence levels
+Focus on what the agent PROVIDES to support the reviewer:
+- Source citations (row numbers, timestamps, page references, speaker names)
+- Confidence scores or uncertainty flags for each conclusion
+- Reasoning trails that show how the agent arrived at its conclusions
+- Data coverage summaries (what was analyzed vs. what was skipped)
+- Alternative interpretations or dissenting patterns the agent considered
+
+Tailor the features to the specific data type:
+- For survey data: Agent cites row-level references, includes response counts, provides confidence indicators per theme
+- For transcripts: Agent includes timestamps, attributes quotes to specific speakers, preserves context around key statements
+- For documents: Agent provides page/section references, cross-references between sources, flags conflicting information
+- For financial data: Agent shows calculation methodology, references source cells, flags assumptions made
+- For general tasks: Agent provides reasoning trails, surfaces alternative perspectives, includes confidence levels
+
+Each accountability feature must include:
+- name: A short, clear name for this agent behavior (e.g., "Source Citation", "Confidence Scoring", "Reasoning Trail")
+- severity: "critical", "important", or "recommended"
+- what_to_verify: 1-2 sentences describing what the agent provides or does (NOT what the human should check — frame it as "The agent includes...", "The agent flags...", "The agent provides...")
+- why_it_matters: 1-2 sentences on how this specific agent behavior helps the reviewer do their job faster and more effectively
+- prompt_instruction: The exact text to add to the agent's prompt to enforce this behavior
 
 RESPONSE FORMAT:
 You must respond with the following JSON structure ONLY — no markdown, no extra text:

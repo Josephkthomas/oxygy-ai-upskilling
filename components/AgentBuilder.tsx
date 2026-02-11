@@ -224,12 +224,12 @@ const STEP_CARDS = [
     },
   },
   {
-    num: 4, icon: '\u{2705}', title: 'Accountability',
-    shortDesc: 'Add human-in-the-loop checks for responsible AI use.',
+    num: 4, icon: '\u{2705}', title: 'Built-In Accountability',
+    shortDesc: 'How your Level 2 agent is designed to support human oversight.',
     education: {
-      heading: 'Why do accountability checks matter?',
-      body: 'Every Level 2 agent should include human-in-the-loop verification. These checks ensure the agent cites its sources, flags uncertainty, and prompts a human review before outputs are shared — reducing the risk of AI hallucinations or errors going unnoticed.',
-      keyPoint: 'Accountability checks are the guardrails that make the difference between a risky automation and a trustworthy Level 2 agent.',
+      heading: 'How does a Level 2 agent support human oversight?',
+      body: 'The goal isn\'t just to remind people to "check the output" — that\'s a given. The real question is: how is the agent itself designed to make that review easy and effective? A well-built Level 2 agent cites specific sources (row numbers, timestamps, page references), provides confidence scores, explains its reasoning, and flags areas of uncertainty — so the human reviewer can verify quickly rather than starting from scratch.',
+      keyPoint: 'Built-in accountability means the agent does the heavy lifting of transparency: citing sources, showing its rationale, and surfacing what it\'s unsure about — so reviewers can focus on judgment, not detective work.',
     },
   },
 ];
@@ -379,7 +379,7 @@ export const AgentBuilder: React.FC = () => {
       .filter((_, idx) => selectedChecks[idx])
       .map(c => c.prompt_instruction)
       .join('\n\n');
-    return result.system_prompt + '\n\n--- HUMAN-IN-THE-LOOP CHECKS ---\n\n' + selectedInstructions;
+    return result.system_prompt + '\n\n--- BUILT-IN ACCOUNTABILITY FEATURES ---\n\n' + selectedInstructions;
   };
 
   const selectedCount = Object.values(selectedChecks).filter(Boolean).length;
@@ -550,8 +550,14 @@ export const AgentBuilder: React.FC = () => {
 
   const renderStep4Content = () => (
     <>
+      <div className="rounded-lg p-4 sm:p-5 mb-5" style={{ background: 'rgba(195, 208, 245, 0.15)', border: '1px solid #C3D0F5', borderLeft: '4px solid #5B6DC2' }}>
+        <p className="text-[14px] font-semibold text-[#1A202C] mb-1">These aren't reminders to "check the output" — that's a given.</p>
+        <p className="text-[13px] text-[#4A5568] leading-[1.6]">
+          Each feature below is a design choice built into your agent's prompt — ensuring it cites sources, explains its reasoning, flags uncertainty, and provides the evidence trail your team needs to verify outputs quickly and confidently.
+        </p>
+      </div>
       <p className="text-[13px] text-[#718096] mb-5">
-        {'\u2611'} All checks selected by default. Uncheck any you don't need.
+        {'\u2611'} All features included by default. Uncheck any you don't need in your agent's prompt.
       </p>
       <div className="space-y-3">
         {result!.accountability.map((check, idx) => {
@@ -585,11 +591,11 @@ export const AgentBuilder: React.FC = () => {
                 </span>
               </div>
               <div className="pl-8">
-                <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">What to verify</p>
+                <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">What the agent provides</p>
                 <p className="text-[14px] text-[#4A5568] leading-[1.6]">{check.what_to_verify}</p>
-                <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">Why this matters</p>
+                <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">How this helps your review</p>
                 <p className="text-[14px] text-[#4A5568] leading-[1.6]">{check.why_it_matters}</p>
-                <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">Add this to your prompt</p>
+                <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">Prompt instruction</p>
                 <div className="relative bg-[#F7FAFC] border border-[#E2E8F0] rounded-md px-3.5 py-2.5">
                   <p className="text-[13px] text-[#2D3748] leading-[1.6] pr-12"
                     style={{ fontFamily: '"JetBrains Mono", "Fira Code", Consolas, monospace' }}>
@@ -602,7 +608,7 @@ export const AgentBuilder: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1.5 mt-3">
                   <Check size={14} className="text-[#5B6DC2]" />
-                  <span className="text-[12px] text-[#5B6DC2]">Included in your agent prompt (Step 3)</span>
+                  <span className="text-[12px] text-[#5B6DC2]">Built into your agent's system prompt (Step 3)</span>
                 </div>
               </div>
             </div>
@@ -613,22 +619,22 @@ export const AgentBuilder: React.FC = () => {
       {/* Copy options bar */}
       <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 bg-[#F7FAFC] border border-[#E2E8F0] rounded-xl">
         <p className="text-[13px] text-[#718096] shrink-0">
-          {selectedCount} of {result!.accountability.length} checks selected
+          {selectedCount} of {result!.accountability.length} features included
         </p>
         <div className="flex-1" />
         <button
-          onClick={() => copyToClipboard(buildSelectedChecksText(), 'Selected checks copied to clipboard', 'selected-checks')}
+          onClick={() => copyToClipboard(buildSelectedChecksText(), 'Selected accountability features copied to clipboard', 'selected-checks')}
           disabled={selectedCount === 0}
           className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold border border-[#1A202C] text-[#1A202C] hover:bg-[#EDF2F7] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {copiedItems['selected-checks'] ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Selected Checks</>}
+          {copiedItems['selected-checks'] ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Selected Features</>}
         </button>
         <button
-          onClick={() => copyToClipboard(buildFullPromptWithChecks(), 'Full prompt with checks copied to clipboard', 'full-with-checks')}
+          onClick={() => copyToClipboard(buildFullPromptWithChecks(), 'Full prompt with accountability features copied to clipboard', 'full-with-checks')}
           disabled={selectedCount === 0}
           className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold text-white bg-[#5B6DC2] hover:bg-[#4A5AB0] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {copiedItems['full-with-checks'] ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Full Prompt + Checks</>}
+          {copiedItems['full-with-checks'] ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Full Prompt + Features</>}
         </button>
       </div>
     </>
@@ -657,7 +663,7 @@ export const AgentBuilder: React.FC = () => {
           </h1>
 
           {/* ─── FUN FACT CARD ─── */}
-          <div className="max-w-4xl mx-auto mb-4">
+          <div className="mb-4">
             <div
               className="relative rounded-2xl px-8 md:px-12 py-8 text-center overflow-hidden"
               style={{
@@ -723,11 +729,8 @@ export const AgentBuilder: React.FC = () => {
             Describe the task your Level 2 agent should handle
           </h2>
 
-          {/* Example pills — single row */}
+          {/* Example pills — single row, color-coded */}
           <div className="flex flex-wrap items-center gap-2 mb-5">
-            <span className="text-[11px] font-semibold text-[#2C7A7B] uppercase tracking-wider shrink-0">
-              Good for a Level 2 agent:
-            </span>
             {GOOD_EXAMPLES.map((ex) => (
               <button key={ex.name} onClick={() => handleExampleClick(ex.task, ex.inputData)}
                 className="px-3 py-1 rounded-full text-[13px] border border-[#A8F0E0] bg-[rgba(168,240,224,0.08)] text-[#2C7A7B] hover:border-[#38B2AC] hover:bg-[rgba(168,240,224,0.2)] transition-colors"
@@ -735,10 +738,6 @@ export const AgentBuilder: React.FC = () => {
                 {ex.name}
               </button>
             ))}
-            <span className="text-[#E2E8F0] mx-1">|</span>
-            <span className="text-[11px] font-semibold text-[#B7791F] uppercase tracking-wider shrink-0">
-              Better as ad-hoc:
-            </span>
             {NOT_RECOMMENDED_EXAMPLES.map((ex) => (
               <button key={ex.name} onClick={() => handleExampleClick(ex.task, ex.inputData)}
                 className="px-3 py-1 rounded-full text-[13px] border border-[#FBCEB1] bg-[rgba(251,206,177,0.08)] text-[#B7791F] hover:border-[#E57A5A] hover:bg-[rgba(251,206,177,0.2)] transition-colors"
