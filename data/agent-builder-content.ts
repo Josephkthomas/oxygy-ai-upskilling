@@ -1,6 +1,7 @@
 // Agent Builder Toolkit — Static Content & Configuration
 
-export const EXAMPLE_AGENTS = [
+// Good examples — strong candidates for Level 2 agents
+export const GOOD_EXAMPLES = [
   {
     name: 'Survey Analyzer',
     task: 'Analyze employee engagement survey results to identify the top themes, sentiment trends by department, and prioritized recommendations for the leadership team',
@@ -16,6 +17,30 @@ export const EXAMPLE_AGENTS = [
     task: 'Draft a first-pass client proposal based on project brief inputs, incorporating relevant case studies, methodology descriptions, and team structure recommendations',
     inputData: 'Project brief documents (Word or PDF) containing client background, objectives, scope, timeline, and budget. Plus an internal case study library with past project descriptions and outcomes.',
   },
+  {
+    name: 'Status Report Generator',
+    task: 'Generate a weekly team status report consolidating updates from multiple project trackers, flagging risks, and summarizing progress against OKRs for leadership review',
+    inputData: 'Jira or Asana exports with task status, assignee, and sprint data. Plus a shared spreadsheet with OKR progress percentages and brief comments from each team lead.',
+  },
+] as const;
+
+// Not-recommended examples — better suited to ad-hoc prompting
+export const NOT_RECOMMENDED_EXAMPLES = [
+  {
+    name: 'Quick Email Reply',
+    task: 'Write a quick reply to a colleague asking about meeting availability next week',
+    inputData: 'A single email thread with 2-3 messages.',
+  },
+  {
+    name: 'One-Time Research',
+    task: 'Research the top 5 competitors in the sustainable packaging space for a one-off board presentation',
+    inputData: 'No specific input data — general web research needed.',
+  },
+  {
+    name: 'Creative Brainstorm',
+    task: 'Help me brainstorm creative names and taglines for a new internal innovation program',
+    inputData: 'A brief description of the program goals and target audience.',
+  },
 ] as const;
 
 export const CRITERIA_LABELS: Record<string, { label: string; description: string }> = {
@@ -25,13 +50,6 @@ export const CRITERIA_LABELS: Record<string, { label: string; description: strin
   complexity: { label: 'Complexity', description: 'Does it require domain expertise or multi-step reasoning?' },
   standardization_risk: { label: 'Standardization Risk', description: 'Would variable outputs cause downstream problems?' },
 };
-
-export const STEPPER_LABELS = [
-  { full: 'Should You Build This?', short: 'Build?' },
-  { full: 'Design Output Format', short: 'Output' },
-  { full: 'Agent Prompt', short: 'Prompt' },
-  { full: 'Accountability', short: 'Checks' },
-];
 
 export const WHY_JSON_CONTENT = `JSON (JavaScript Object Notation) is a structured data format that both humans and machines can read. When you define your agent's output as a JSON template:
 

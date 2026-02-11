@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useAgentDesignApi } from '../hooks/useAgentDesignApi';
 import {
-  EXAMPLE_AGENTS, CRITERIA_LABELS, STEPPER_LABELS,
+  GOOD_EXAMPLES, NOT_RECOMMENDED_EXAMPLES, CRITERIA_LABELS,
   WHY_JSON_CONTENT, PROMPT_SECTION_COLORS,
 } from '../data/agent-builder-content';
 import type { AgentDesignResult, AgentReadinessCriteria } from '../types';
@@ -193,34 +193,16 @@ function StepFourSkeleton() {
   );
 }
 
-/* ─── 4-STEP EDUCATIONAL CARDS ─── */
+/* ─── STEP CARD DEFINITIONS ─── */
 
-const STEP_EDUCATION = [
-  {
-    num: 1, icon: '\u{1F50D}', title: 'Agent Readiness Assessment',
-    subtitle: 'Not every task needs a custom agent.',
-    description: 'Before investing time in building an agent, we evaluate your task against 5 criteria: frequency, consistency, shareability, complexity, and standardization risk. This ensures you\'re building agents where they matter most — not just because you can.',
-    keyInsight: 'Tasks scored below 50% are usually better handled with Level 1 ad-hoc prompting.',
-  },
-  {
-    num: 2, icon: '\u{1F4D0}', title: 'Output Format Design',
-    subtitle: 'Great agents deliver consistent, structured results.',
-    description: 'The power of a Level 2 agent is that it produces the same output format every time — whether you\'re using it or your colleague is. We design both a human-readable format and a JSON template that makes your agent\'s output predictable, parseable, and actionable.',
-    keyInsight: 'Standardized outputs eliminate "prompt roulette" — the problem of getting wildly different formats each time.',
-  },
-  {
-    num: 3, icon: '\u{1F4DD}', title: 'System Prompt Generation',
-    subtitle: 'Your agent\'s brain, built on the Prompt Blueprint.',
-    description: 'Using the 6-part Prompt Blueprint framework from Level 1, we generate a complete system prompt with a clear role definition, context, task instructions, output format, step-by-step process, and quality checks — all tailored to your specific task.',
-    keyInsight: 'A well-structured system prompt is what separates a one-off chat from a reusable, reliable tool.',
-  },
-  {
-    num: 4, icon: '\u{2705}', title: 'Human-in-the-Loop Checks',
-    subtitle: 'AI agents are powerful, but they need guardrails.',
-    description: 'Every agent should have accountability built in. We generate specific verification checks — things a human should review before trusting the output. These checks are tailored to your task and input data, covering accuracy, bias, hallucination risks, and domain-specific concerns.',
-    keyInsight: 'Teams that implement human-in-the-loop checks see 40% fewer errors in production agent outputs.',
-  },
+const STEP_CARDS = [
+  { num: 1, icon: '\u{1F50D}', title: 'Agent Readiness', shortDesc: 'Is this task a good fit for a custom agent?' },
+  { num: 2, icon: '\u{1F4D0}', title: 'Output Format', shortDesc: 'Define the structured format your agent produces.' },
+  { num: 3, icon: '\u{1F4DD}', title: 'System Prompt', shortDesc: 'Get a complete, ready-to-use system prompt.' },
+  { num: 4, icon: '\u{2705}', title: 'Accountability', shortDesc: 'Add human verification checks for guardrails.' },
 ];
+
+const STEP_SKELETONS = [StepOneSkeleton, StepTwoSkeleton, StepThreeSkeleton, StepFourSkeleton];
 
 /* ─── MAIN COMPONENT ─── */
 
@@ -236,56 +218,25 @@ export const AgentBuilder: React.FC = () => {
   const [stepsRevealed, setStepsRevealed] = useState(0);
   const [scoreAnimated, setScoreAnimated] = useState(false);
 
+  // Accordion state
+  const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({});
+
   // UI state
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [showJsonTooltip, setShowJsonTooltip] = useState(false);
   const [copiedItems, setCopiedItems] = useState<Record<string, boolean>>({});
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [activeStep, setActiveStep] = useState(0);
 
   // Accountability checkbox state
   const [selectedChecks, setSelectedChecks] = useState<Record<number, boolean>>({});
 
   // Refs
-  const outputRef = useRef<HTMLDivElement>(null);
-  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const stepperRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const inputSectionRef = useRef<HTMLDivElement>(null);
-  const [isStepperStuck, setIsStepperStuck] = useState(false);
+  const cardsRef = useRef<HTMLDivElement>(null);
 
   // API
   const { designAgent, isLoading, error, clearError } = useAgentDesignApi();
-
-  // ─── Sticky stepper detection ───
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsStepperStuck(!entry.isIntersecting),
-      { threshold: 0, rootMargin: '-80px 0px 0px 0px' }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [result]);
-
-  // ─── Track active step on scroll ───
-  useEffect(() => {
-    if (!result) return;
-    const handleScroll = () => {
-      for (let i = stepRefs.current.length - 1; i >= 0; i--) {
-        const el = stepRefs.current[i];
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= 120) { setActiveStep(i); return; }
-        }
-      }
-      setActiveStep(0);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [result]);
 
   // ─── Staggered step reveal ───
   useEffect(() => {
@@ -307,9 +258,9 @@ export const AgentBuilder: React.FC = () => {
   }, [result]);
 
   // ─── Handlers ───
-  const handleExampleClick = (example: typeof EXAMPLE_AGENTS[number]) => {
-    setTaskDescription(example.task);
-    setInputDataDescription(example.inputData);
+  const handleExampleClick = (task: string, inputData: string) => {
+    setTaskDescription(task);
+    setInputDataDescription(inputData);
     setFlashTask(true);
     setFlashData(true);
     setTimeout(() => { setFlashTask(false); setFlashData(false); }, 300);
@@ -322,8 +273,13 @@ export const AgentBuilder: React.FC = () => {
     setStepsRevealed(0);
     setScoreAnimated(false);
     setPromptExpanded(false);
-    setActiveStep(0);
     setSelectedChecks({});
+
+    // Expand all cards to show skeletons
+    setExpandedSteps({ 0: true, 1: true, 2: true, 3: true });
+    setTimeout(() => {
+      cardsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
 
     const data = await designAgent({
       task_description: taskDescription.trim(),
@@ -332,9 +288,6 @@ export const AgentBuilder: React.FC = () => {
 
     if (data) {
       setResult(data);
-      setTimeout(() => {
-        outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
     }
   };
 
@@ -346,9 +299,16 @@ export const AgentBuilder: React.FC = () => {
     setScoreAnimated(false);
     setPromptExpanded(false);
     setCopiedItems({});
-    setActiveStep(0);
     setSelectedChecks({});
+    setExpandedSteps({});
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCardToggle = (idx: number) => {
+    // Only allow toggling after content has been revealed
+    if (stepsRevealed > idx) {
+      setExpandedSteps(prev => ({ ...prev, [idx]: !prev[idx] }));
+    }
   };
 
   const toggleCheck = (idx: number) => {
@@ -364,12 +324,6 @@ export const AgentBuilder: React.FC = () => {
       setTimeout(() => setShowToast(false), 2500);
     });
   }, []);
-
-  const scrollToStep = (idx: number) => {
-    if (idx <= stepsRevealed - 1) {
-      stepRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
 
   const scrollToInput = () => {
     inputSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -404,6 +358,248 @@ export const AgentBuilder: React.FC = () => {
     return () => { document.removeEventListener('click', handleClick); document.removeEventListener('keydown', handleEsc); };
   }, [showJsonTooltip]);
 
+  /* ─── STEP CONTENT RENDERERS ─── */
+
+  const renderStep1Content = () => (
+    <>
+      <div className="mb-8">
+        <ScoreCircle score={result!.readiness.overall_score} animated={scoreAnimated} />
+      </div>
+      <div className="mb-8">
+        {(Object.entries(result!.readiness.criteria) as [string, AgentReadinessCriteria][]).map(([key, val]) => (
+          <div key={key} className="flex items-center gap-4 py-3 border-b border-[#F7FAFC] last:border-b-0">
+            <div className="w-[140px] shrink-0">
+              <p className="text-[14px] font-bold text-[#1A202C]">{CRITERIA_LABELS[key]?.label || key}</p>
+            </div>
+            <p className="flex-1 text-[14px] text-[#4A5568]">{val.assessment}</p>
+            <div className="w-[120px] shrink-0">
+              <div className="h-[6px] rounded-full bg-[#E2E8F0] overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${val.score}%`, backgroundColor: '#38B2AC' }} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-[#F7FAFC] rounded-lg p-4 border border-[#E2E8F0]">
+          <div className="flex items-center gap-2 mb-3">
+            <MessageSquare size={18} className="text-[#A0AEC0]" />
+            <h4 className="text-[14px] font-semibold text-[#1A202C]">Level 1: Ad-Hoc Prompting</h4>
+          </div>
+          <ul className="space-y-2">
+            {result!.readiness.level1_points.map((point, i) => (
+              <li key={i} className="text-[13px] text-[#4A5568] leading-[1.6] flex gap-2">
+                <span className="text-[#A0AEC0] shrink-0">&bull;</span>{point}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="bg-[#F7FAFC] rounded-lg p-4"
+          style={{ border: result!.readiness.overall_score >= 50 ? '2px solid #5B6DC2' : '1px solid #E2E8F0' }}
+        >
+          {result!.readiness.overall_score >= 50 && (
+            <span className="inline-block text-[11px] font-semibold text-white bg-[#5B6DC2] rounded-[10px] px-2 py-0.5 mb-2">Recommended</span>
+          )}
+          <div className="flex items-center gap-2 mb-3">
+            <Bot size={18} className="text-[#5B6DC2]" />
+            <h4 className="text-[14px] font-semibold text-[#1A202C]">Level 2: Custom Agent</h4>
+          </div>
+          <ul className="space-y-2">
+            {result!.readiness.level2_points.map((point, i) => (
+              <li key={i} className="text-[13px] text-[#4A5568] leading-[1.6] flex gap-2">
+                <span className="text-[#5B6DC2] shrink-0">&bull;</span>{point}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderStep2Content = () => (
+    <>
+      <div className="rounded-lg p-4 sm:p-5 mb-6" style={{ background: 'rgba(195, 208, 245, 0.2)', border: '1px solid #C3D0F5', borderLeft: '4px solid #5B6DC2' }}>
+        <p className="text-[14px] font-semibold text-[#1A202C] mb-1">{'\uD83D\uDD17'} Build once, share across the team</p>
+        <p className="text-[13px] text-[#4A5568] leading-[1.6]">Standardized output formats mean no one has to guess what the agent will produce — it works the same way for everyone.</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Eye size={16} className="text-[#718096]" />
+            <span className="text-[13px] font-semibold text-[#1A202C]">What your team sees</span>
+          </div>
+          <div className="bg-white border border-[#E2E8F0] rounded-[10px] p-5 overflow-y-auto" style={{ maxHeight: '400px' }}>
+            {result!.output_format.human_readable.split('\n').map((line, i) => {
+              if (!line.trim()) return <div key={i} className="h-3" />;
+              if (line.startsWith('# ') || line.startsWith('## ') || line.startsWith('### ') || /^[A-Z][A-Z\s&:]+$/.test(line.trim())) {
+                return <p key={i} className="text-[14px] font-semibold text-[#1A202C] mt-3 first:mt-0 mb-1">{line.replace(/^#+\s*/, '')}</p>;
+              }
+              if (line.trim().startsWith('- ') || line.trim().startsWith('\u2022 ')) {
+                return <p key={i} className="text-[13px] text-[#4A5568] leading-[1.6] pl-4">&bull; {line.replace(/^\s*[-\u2022]\s*/, '')}</p>;
+              }
+              return <p key={i} className="text-[13px] text-[#4A5568] leading-[1.6]">{line}</p>;
+            })}
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center gap-2 mb-2 relative">
+            <Code size={16} className="text-[#718096]" />
+            <span className="text-[13px] font-semibold text-[#1A202C]">The JSON template</span>
+            <button onClick={e => { e.stopPropagation(); setShowJsonTooltip(!showJsonTooltip); }}
+              className="text-[11px] font-semibold text-[#718096] hover:text-[#5B6DC2] bg-[#F7FAFC] border border-[#E2E8F0] rounded px-1.5 py-0.5 transition-colors"
+            >Why JSON?</button>
+            {showJsonTooltip && (
+              <div className="absolute top-full left-0 mt-1 z-40 bg-[#1A202C] text-white rounded-lg p-4 sm:p-5 max-w-[320px] animate-fade-in"
+                onClick={e => e.stopPropagation()}>
+                <p className="text-[13px] leading-[1.6] whitespace-pre-line">{WHY_JSON_CONTENT}</p>
+              </div>
+            )}
+          </div>
+          <div className="relative bg-[#1A202C] rounded-[10px] p-5 overflow-y-auto" style={{ maxHeight: '400px', fontFamily: '"JetBrains Mono", "Fira Code", Consolas, monospace' }}>
+            <button
+              onClick={() => copyToClipboard(JSON.stringify(result!.output_format.json_template, null, 2), 'JSON template copied to clipboard', 'json')}
+              className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] text-white transition-colors"
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
+            >
+              {copiedItems['json'] ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+            </button>
+            <pre className="text-[13px] leading-[1.6] overflow-x-auto">
+              {JSON.stringify(result!.output_format.json_template, null, 2).split('\n').map((line, i) => (
+                <div key={i}>{renderJSONLine(line)}</div>
+              ))}
+            </pre>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderStep3Content = () => (
+    <>
+      <p className="text-[13px] text-[#718096] mb-5">
+        {'\uD83D\uDD17'} This prompt follows the Prompt Blueprint framework from Level 1.{' '}
+        <a href="#playground" className="text-[#5B6DC2] hover:underline inline-flex items-center gap-1">
+          Visit the Prompt Engineering Playground <ArrowRight size={12} />
+        </a>
+      </p>
+      <div className="bg-[#F7FAFC] border border-[#E2E8F0] rounded-[10px] p-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[14px] text-[#1A202C] font-medium">
+            <span>{'\uD83D\uDCCB'}</span> Your system prompt is ready
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => copyToClipboard(result!.system_prompt, 'System prompt copied to clipboard', 'system-prompt')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-semibold text-white bg-[#5B6DC2] hover:bg-[#4A5AB0] transition-colors"
+            >
+              {copiedItems['system-prompt'] ? <><Check size={16} /> Copied</> : <><Copy size={16} /> Copy System Prompt</>}
+            </button>
+            <button onClick={() => setPromptExpanded(!promptExpanded)}
+              className="flex items-center gap-1 text-[14px] text-[#718096] hover:text-[#5B6DC2] transition-colors"
+              aria-expanded={promptExpanded}
+            >
+              {promptExpanded ? <><ChevronUp size={16} /> Hide</> : <><ChevronDown size={16} /> View Full Prompt</>}
+            </button>
+          </div>
+        </div>
+        <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: promptExpanded ? '500px' : '0' }}>
+          <div className="mt-4 bg-white border border-[#E2E8F0] rounded-lg p-4 sm:p-5 overflow-y-auto" style={{ maxHeight: '460px' }}>
+            <div className="text-[14px] text-[#2D3748] leading-[1.7] whitespace-pre-wrap">
+              {renderColorCodedPrompt(result!.system_prompt)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderStep4Content = () => (
+    <>
+      <p className="text-[13px] text-[#718096] mb-5">
+        {'\u2611'} All checks selected by default. Uncheck any you don't need.
+      </p>
+      <div className="space-y-3">
+        {result!.accountability.map((check, idx) => {
+          const severity = getSeverityStyle(check.severity);
+          const isSelected = !!selectedChecks[idx];
+          return (
+            <div
+              key={idx}
+              className="bg-white border rounded-lg p-4 sm:p-5 relative transition-all duration-200"
+              style={{
+                borderLeft: `4px solid ${isSelected ? '#5B6DC2' : '#E2E8F0'}`,
+                borderColor: isSelected ? '#E2E8F0' : '#E2E8F0',
+                borderLeftColor: isSelected ? '#5B6DC2' : '#A0AEC0',
+                opacity: isSelected ? 1 : 0.6,
+              }}
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-start gap-3">
+                  <button onClick={() => toggleCheck(idx)} className="mt-0.5 shrink-0 transition-colors" aria-label={`${isSelected ? 'Deselect' : 'Select'} ${check.name}`}>
+                    {isSelected ? (
+                      <CheckSquare size={20} className="text-[#5B6DC2]" />
+                    ) : (
+                      <Square size={20} className="text-[#A0AEC0] hover:text-[#718096]" />
+                    )}
+                  </button>
+                  <h4 className="text-[16px] font-bold text-[#1A202C]">{check.name}</h4>
+                </div>
+                <span className="text-[11px] font-semibold rounded-[10px] px-2 py-0.5 shrink-0 capitalize"
+                  style={{ backgroundColor: severity.bg, color: severity.color, border: `1px solid ${severity.border}` }}>
+                  {check.severity}
+                </span>
+              </div>
+              <div className="pl-8">
+                <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">What to verify</p>
+                <p className="text-[14px] text-[#4A5568] leading-[1.6]">{check.what_to_verify}</p>
+                <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">Why this matters</p>
+                <p className="text-[14px] text-[#4A5568] leading-[1.6]">{check.why_it_matters}</p>
+                <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">Add this to your prompt</p>
+                <div className="relative bg-[#F7FAFC] border border-[#E2E8F0] rounded-md px-3.5 py-2.5">
+                  <p className="text-[13px] text-[#2D3748] leading-[1.6] pr-12"
+                    style={{ fontFamily: '"JetBrains Mono", "Fira Code", Consolas, monospace' }}>
+                    {check.prompt_instruction}
+                  </p>
+                  <button onClick={() => copyToClipboard(check.prompt_instruction, `"${check.name}" instruction copied`, `check-${idx}`)}
+                    className="absolute top-2 right-2 text-[12px] text-[#5B6DC2] hover:underline">
+                    {copiedItems[`check-${idx}`] ? 'Copied \u2713' : 'Copy'}
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 mt-3">
+                  <Check size={14} className="text-[#5B6DC2]" />
+                  <span className="text-[12px] text-[#5B6DC2]">Included in your agent prompt (Step 3)</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Copy options bar */}
+      <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 bg-[#F7FAFC] border border-[#E2E8F0] rounded-xl">
+        <p className="text-[13px] text-[#718096] shrink-0">
+          {selectedCount} of {result!.accountability.length} checks selected
+        </p>
+        <div className="flex-1" />
+        <button
+          onClick={() => copyToClipboard(buildSelectedChecksText(), 'Selected checks copied to clipboard', 'selected-checks')}
+          disabled={selectedCount === 0}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold border border-[#1A202C] text-[#1A202C] hover:bg-[#EDF2F7] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {copiedItems['selected-checks'] ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Selected Checks</>}
+        </button>
+        <button
+          onClick={() => copyToClipboard(buildFullPromptWithChecks(), 'Full prompt with checks copied to clipboard', 'full-with-checks')}
+          disabled={selectedCount === 0}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold text-white bg-[#5B6DC2] hover:bg-[#4A5AB0] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {copiedItems['full-with-checks'] ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Full Prompt + Checks</>}
+        </button>
+      </div>
+    </>
+  );
+
+  const STEP_RENDERERS = [renderStep1Content, renderStep2Content, renderStep3Content, renderStep4Content];
+
   return (
     <div className="min-h-screen bg-white pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-6">
@@ -424,7 +620,7 @@ export const AgentBuilder: React.FC = () => {
             </span>
           </h1>
 
-          {/* ─── FUN FACT CARD (wider, lavender theme) ─── */}
+          {/* ─── FUN FACT CARD ─── */}
           <div className="max-w-4xl mx-auto mb-4">
             <div
               className="relative rounded-2xl px-8 md:px-12 py-8 text-center overflow-hidden"
@@ -433,7 +629,6 @@ export const AgentBuilder: React.FC = () => {
                 border: '1.5px solid #C3D0F5',
               }}
             >
-              {/* Decorative accent dots */}
               <div className="absolute top-3 left-4 flex gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#5B6DC2] opacity-40" />
                 <span className="w-2 h-2 rounded-full bg-[#C3D0F5] opacity-60" />
@@ -448,7 +643,7 @@ export const AgentBuilder: React.FC = () => {
                 than those relying on ad-hoc prompts alone.
               </p>
               <p className="text-[15px] text-[#718096] leading-[1.6] mb-6 max-w-3xl mx-auto">
-                The difference between a one-off prompt and a custom agent is the difference between a single answer and a reusable tool your entire team can rely on — with consistent outputs, built-in accountability, and a structure that scales.
+                The difference between a one-off prompt and a custom agent is the difference between a single answer and a reusable tool your entire team can rely on.
               </p>
 
               <button
@@ -461,10 +656,10 @@ export const AgentBuilder: React.FC = () => {
           </div>
         </div>
 
-        {/* ─── INPUT SECTION (lavender-tinted container) ─── */}
+        {/* ─── INPUT SECTION ─── */}
         <div
           ref={inputSectionRef}
-          className="rounded-2xl p-6 sm:p-8 mb-10 scroll-mt-24"
+          className="rounded-2xl p-6 sm:p-8 mb-8 scroll-mt-24"
           style={{
             background: 'linear-gradient(135deg, rgba(195, 208, 245, 0.12) 0%, rgba(195, 208, 245, 0.06) 100%)',
             border: '1.5px solid #C3D0F5',
@@ -474,17 +669,35 @@ export const AgentBuilder: React.FC = () => {
             Describe the task your agent should handle
           </h2>
 
-          {/* Example pills */}
+          {/* Example clusters */}
           <div className="mb-5">
-            <span className="text-[13px] text-[#718096] italic block mb-2">Try an example:</span>
-            <div className="flex flex-wrap gap-2">
-              {EXAMPLE_AGENTS.map((ex) => (
-                <button key={ex.name} onClick={() => handleExampleClick(ex)}
-                  className="px-3.5 py-1.5 rounded-full text-[13px] border border-[#C3D0F5] bg-white text-[#4A5568] hover:border-[#5B6DC2] hover:text-[#5B6DC2] hover:bg-[rgba(195,208,245,0.15)] transition-colors"
-                >
-                  {ex.name}
-                </button>
-              ))}
+            <div className="mb-3">
+              <span className="text-[11px] font-semibold text-[#2C7A7B] uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <Check size={12} /> Good candidates for a custom agent
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {GOOD_EXAMPLES.map((ex) => (
+                  <button key={ex.name} onClick={() => handleExampleClick(ex.task, ex.inputData)}
+                    className="px-3.5 py-1.5 rounded-full text-[13px] border border-[#A8F0E0] bg-[rgba(168,240,224,0.08)] text-[#2C7A7B] hover:border-[#38B2AC] hover:bg-[rgba(168,240,224,0.2)] transition-colors"
+                  >
+                    {ex.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="text-[11px] font-semibold text-[#B7791F] uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <ArrowRight size={12} /> Better as ad-hoc prompts
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {NOT_RECOMMENDED_EXAMPLES.map((ex) => (
+                  <button key={ex.name} onClick={() => handleExampleClick(ex.task, ex.inputData)}
+                    className="px-3.5 py-1.5 rounded-full text-[13px] border border-[#FBCEB1] bg-[rgba(251,206,177,0.08)] text-[#B7791F] hover:border-[#E57A5A] hover:bg-[rgba(251,206,177,0.2)] transition-colors"
+                  >
+                    {ex.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -530,10 +743,8 @@ export const AgentBuilder: React.FC = () => {
               Why does input data matter?
             </p>
             <p className="text-[13px] text-[#4A5568] leading-[1.6]">
-              The type of data your agent processes determines everything:
-              how its output should be structured, what evidence it should cite,
-              and what human checks are needed. Defining your input data helps us design
-              the right accountability checks.
+              The type of data your agent processes determines how its output should be structured,
+              what evidence it should cite, and what human checks are needed.
             </p>
           </div>
 
@@ -570,395 +781,99 @@ export const AgentBuilder: React.FC = () => {
           )}
         </div>
 
-        {/* ─── 4-STEP EDUCATIONAL CARDS ─── */}
-        <div className="mb-10">
-          <h2 className="text-[22px] md:text-[26px] font-bold text-[#1A202C] text-center mb-2">
-            How the Agent Builder Works
-          </h2>
-          <p className="text-[15px] text-[#718096] text-center mb-8 max-w-2xl mx-auto">
-            When you click "Design My Agent," our AI walks through these 4 steps to build a complete, production-ready agent for your task.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {STEP_EDUCATION.map((step) => (
+        {/* ─── UNIFIED STEP CARDS (accordion) ─── */}
+        <div ref={cardsRef} className="space-y-3 scroll-mt-24">
+          {STEP_CARDS.map((step, idx) => {
+            const isExpanded = !!expandedSteps[idx];
+            const hasContent = stepsRevealed > idx && result !== null;
+            const showSkeleton = isExpanded && stepsRevealed <= idx && (isLoading || result !== null);
+            const showContent = isExpanded && hasContent;
+            const canToggle = hasContent;
+            const StepSkeleton = STEP_SKELETONS[idx];
+
+            const stepStatus: 'complete' | 'loading' | 'pending' =
+              hasContent ? 'complete' :
+              (isExpanded && (isLoading || result) && stepsRevealed <= idx) ? 'loading' :
+              'pending';
+
+            return (
               <div
                 key={step.num}
-                className="bg-white border border-[#E2E8F0] rounded-xl p-6 sm:p-7"
-                style={{ borderLeft: '4px solid #C3D0F5' }}
+                className="bg-white border rounded-xl overflow-hidden transition-all duration-200"
+                style={{
+                  borderColor: stepStatus === 'pending' ? '#E2E8F0' : '#C3D0F5',
+                  borderLeftWidth: stepStatus !== 'pending' ? '4px' : '1px',
+                  borderLeftColor: stepStatus !== 'pending' ? '#5B6DC2' : '#E2E8F0',
+                }}
               >
-                <p className="text-[12px] font-semibold text-[#5B6DC2] uppercase tracking-wider mb-1">Step {step.num}</p>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">{step.icon}</span>
-                  <h3 className="text-[18px] font-bold text-[#1A202C]">{step.title}</h3>
+                {/* ── Card Header (always visible) ── */}
+                <div
+                  className="flex items-center gap-4 px-5 sm:px-6 py-4 select-none transition-colors"
+                  style={{ cursor: canToggle ? 'pointer' : 'default' }}
+                  onClick={() => canToggle && handleCardToggle(idx)}
+                  role={canToggle ? 'button' : undefined}
+                  aria-expanded={canToggle ? isExpanded : undefined}
+                >
+                  {/* Step number / status circle */}
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 transition-all duration-300"
+                    style={{
+                      backgroundColor: stepStatus === 'complete' ? '#5B6DC2' : stepStatus === 'loading' ? '#C3D0F5' : '#F7FAFC',
+                      color: stepStatus === 'complete' ? '#FFFFFF' : stepStatus === 'loading' ? '#5B6DC2' : '#A0AEC0',
+                      border: stepStatus === 'pending' ? '1px solid #E2E8F0' : 'none',
+                    }}
+                  >
+                    {stepStatus === 'complete' ? <Check size={16} /> :
+                     stepStatus === 'loading' ? <span className="w-3.5 h-3.5 border-2 border-[#5B6DC2] border-t-transparent rounded-full animate-spin" /> :
+                     step.num}
+                  </div>
+
+                  {/* Title + short description */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{step.icon}</span>
+                      <h3 className="text-[15px] sm:text-[16px] font-bold text-[#1A202C]">{step.title}</h3>
+                    </div>
+                    {!isExpanded && (
+                      <p className="text-[13px] text-[#718096] mt-0.5 truncate">{step.shortDesc}</p>
+                    )}
+                  </div>
+
+                  {/* Chevron (only when toggleable) */}
+                  {canToggle && (
+                    <div className="shrink-0 text-[#A0AEC0]">
+                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </div>
+                  )}
                 </div>
-                <p className="text-[15px] font-medium text-[#2D3748] mb-2">{step.subtitle}</p>
-                <p className="text-[14px] text-[#4A5568] leading-[1.7] mb-4">{step.description}</p>
-                <div className="bg-[rgba(195,208,245,0.15)] border border-[#C3D0F5] rounded-lg px-4 py-3">
-                  <p className="text-[13px] text-[#5B6DC2] leading-[1.5]">
-                    <span className="font-semibold">Key insight:</span> {step.keyInsight}
-                  </p>
+
+                {/* ── Expandable Content ── */}
+                <div
+                  className="grid transition-[grid-template-rows] duration-300 ease-out"
+                  style={{ gridTemplateRows: isExpanded ? '1fr' : '0fr' }}
+                >
+                  <div className="overflow-hidden">
+                    <div className="px-5 sm:px-6 pb-6 pt-1">
+                      {showSkeleton && <StepSkeleton />}
+                      {showContent && STEP_RENDERERS[idx]()}
+                    </div>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
-        {/* ─── OUTPUT SECTION ─── */}
-        {(result || isLoading) && (
-          <div ref={outputRef} className="mt-4">
-            <div ref={sentinelRef} />
-
-            {/* ─── PROGRESS STEPPER ─── */}
-            <div
-              ref={stepperRef}
-              className="sticky top-0 z-30 py-4 mb-6 transition-all duration-200"
-              style={{
-                backgroundColor: isStepperStuck ? 'rgba(255,255,255,0.9)' : 'transparent',
-                backdropFilter: isStepperStuck ? 'blur(8px)' : 'none',
-                boxShadow: isStepperStuck ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-              }}
-              role="navigation" aria-label="Agent design steps"
-            >
-              <div className="flex items-center justify-between max-w-[600px] mx-auto">
-                {STEPPER_LABELS.map((step, idx) => {
-                  const isCompleted = idx < stepsRevealed - 1 || (stepsRevealed === 4 && idx < 4);
-                  const isActive = idx === activeStep && stepsRevealed > idx;
-                  const isUpcoming = idx >= stepsRevealed;
-                  return (
-                    <React.Fragment key={idx}>
-                      {idx > 0 && (
-                        <div className="flex-1 h-[2px] mx-1" style={{
-                          backgroundColor: idx < stepsRevealed ? '#5B6DC2' : '#E2E8F0',
-                          transition: 'background-color 0.3s',
-                        }} />
-                      )}
-                      <button onClick={() => scrollToStep(idx)} className="flex flex-col items-center gap-1.5 shrink-0"
-                        style={{ cursor: isCompleted || isActive ? 'pointer' : 'default' }} disabled={isUpcoming}
-                      >
-                        <div className="flex items-center justify-center rounded-full text-[13px] font-bold transition-all duration-300"
-                          style={{
-                            width: '32px', height: '32px',
-                            backgroundColor: (isCompleted || isActive) ? '#5B6DC2' : '#F7FAFC',
-                            color: (isCompleted || isActive) ? '#FFFFFF' : '#A0AEC0',
-                            border: isUpcoming ? '1px solid #E2E8F0' : 'none',
-                          }}
-                        >
-                          {isCompleted && !isActive ? <Check size={16} /> : idx + 1}
-                        </div>
-                        <span className="text-center leading-tight max-w-[100px]" style={{
-                          fontSize: '12px', fontWeight: isActive ? 600 : 400,
-                          color: isActive ? '#1A202C' : isCompleted ? '#5B6DC2' : '#A0AEC0',
-                        }}>
-                          <span className="hidden sm:inline">{step.full}</span>
-                          <span className="sm:hidden">{step.short}</span>
-                        </span>
-                      </button>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* ─── STEP 1: Should You Build This? ─── */}
-            {(stepsRevealed >= 1 || isLoading) && (
-              <div ref={el => stepRefs.current[0] = el} className="bg-white border border-[#E2E8F0] rounded-xl p-6 sm:p-8 animate-fade-in-up mb-8 scroll-mt-24">
-                <p className="text-[12px] font-semibold text-[#5B6DC2] uppercase tracking-wider mb-1">Step 1</p>
-                <h3 className="text-[24px] font-bold text-[#1A202C] mb-2">Should You Build This?</h3>
-                <p className="text-[15px] text-[#4A5568] mb-6">Not every task needs a custom agent. Here's our assessment of whether your task is a strong candidate.</p>
-
-                {isLoading && !result ? <StepOneSkeleton /> : result && (
-                  <>
-                    <div className="mb-8">
-                      <ScoreCircle score={result.readiness.overall_score} animated={scoreAnimated} />
-                    </div>
-
-                    <div className="mb-8">
-                      {(Object.entries(result.readiness.criteria) as [string, AgentReadinessCriteria][]).map(([key, val]) => (
-                        <div key={key} className="flex items-center gap-4 py-3 border-b border-[#F7FAFC] last:border-b-0">
-                          <div className="w-[140px] shrink-0">
-                            <p className="text-[14px] font-bold text-[#1A202C]">{CRITERIA_LABELS[key]?.label || key}</p>
-                          </div>
-                          <p className="flex-1 text-[14px] text-[#4A5568]">{val.assessment}</p>
-                          <div className="w-[120px] shrink-0">
-                            <div className="h-[6px] rounded-full bg-[#E2E8F0] overflow-hidden">
-                              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${val.score}%`, backgroundColor: '#38B2AC' }} />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* L1 vs L2 Comparison */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-[#F7FAFC] rounded-lg p-4 border border-[#E2E8F0]">
-                        <div className="flex items-center gap-2 mb-3">
-                          <MessageSquare size={18} className="text-[#A0AEC0]" />
-                          <h4 className="text-[14px] font-semibold text-[#1A202C]">Level 1: Ad-Hoc Prompting</h4>
-                        </div>
-                        <ul className="space-y-2">
-                          {result.readiness.level1_points.map((point, i) => (
-                            <li key={i} className="text-[13px] text-[#4A5568] leading-[1.6] flex gap-2">
-                              <span className="text-[#A0AEC0] shrink-0">&bull;</span>{point}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="bg-[#F7FAFC] rounded-lg p-4"
-                        style={{ border: result.readiness.overall_score >= 50 ? '2px solid #5B6DC2' : '1px solid #E2E8F0' }}
-                      >
-                        {result.readiness.overall_score >= 50 && (
-                          <span className="inline-block text-[11px] font-semibold text-white bg-[#5B6DC2] rounded-[10px] px-2 py-0.5 mb-2">Recommended</span>
-                        )}
-                        <div className="flex items-center gap-2 mb-3">
-                          <Bot size={18} className="text-[#5B6DC2]" />
-                          <h4 className="text-[14px] font-semibold text-[#1A202C]">Level 2: Custom Agent</h4>
-                        </div>
-                        <ul className="space-y-2">
-                          {result.readiness.level2_points.map((point, i) => (
-                            <li key={i} className="text-[13px] text-[#4A5568] leading-[1.6] flex gap-2">
-                              <span className="text-[#5B6DC2] shrink-0">&bull;</span>{point}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* ─── STEP 2: Design Your Output Format ─── */}
-            {(stepsRevealed >= 2 || (isLoading && stepsRevealed >= 1)) && (
-              <div ref={el => stepRefs.current[1] = el} className="bg-white border border-[#E2E8F0] rounded-xl p-6 sm:p-8 animate-fade-in-up mb-8 scroll-mt-24">
-                <p className="text-[12px] font-semibold text-[#5B6DC2] uppercase tracking-wider mb-1">Step 2</p>
-                <h3 className="text-[24px] font-bold text-[#1A202C] mb-2">Design Your Output Format</h3>
-                <p className="text-[15px] text-[#4A5568] mb-4">A great agent doesn't just give good answers — it gives them in the same structure every time. This is what makes it shareable.</p>
-
-                {/* Shareability callout */}
-                <div className="rounded-lg p-4 sm:p-5 mb-6" style={{ background: 'rgba(195, 208, 245, 0.2)', border: '1px solid #C3D0F5', borderLeft: '4px solid #5B6DC2' }}>
-                  <p className="text-[14px] font-semibold text-[#1A202C] mb-1">{'\uD83D\uDD17'} Build once, share across the team</p>
-                  <p className="text-[13px] text-[#4A5568] leading-[1.6]">The power of a Level 2 agent isn't just that it works for you — it's that it works the same way for everyone on your team. Standardized output formats mean no one has to guess what the agent will produce.</p>
-                </div>
-
-                {isLoading && !result ? <StepTwoSkeleton /> : result && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Human View */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Eye size={16} className="text-[#718096]" />
-                        <span className="text-[13px] font-semibold text-[#1A202C]">What your team sees</span>
-                      </div>
-                      <div className="bg-white border border-[#E2E8F0] rounded-[10px] p-5 overflow-y-auto" style={{ maxHeight: '400px' }}>
-                        {result.output_format.human_readable.split('\n').map((line, i) => {
-                          if (!line.trim()) return <div key={i} className="h-3" />;
-                          if (line.startsWith('# ') || line.startsWith('## ') || line.startsWith('### ') || /^[A-Z][A-Z\s&:]+$/.test(line.trim())) {
-                            return <p key={i} className="text-[14px] font-semibold text-[#1A202C] mt-3 first:mt-0 mb-1">{line.replace(/^#+\s*/, '')}</p>;
-                          }
-                          if (line.trim().startsWith('- ') || line.trim().startsWith('\u2022 ')) {
-                            return <p key={i} className="text-[13px] text-[#4A5568] leading-[1.6] pl-4">&bull; {line.replace(/^\s*[-\u2022]\s*/, '')}</p>;
-                          }
-                          return <p key={i} className="text-[13px] text-[#4A5568] leading-[1.6]">{line}</p>;
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Code View */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2 relative">
-                        <Code size={16} className="text-[#718096]" />
-                        <span className="text-[13px] font-semibold text-[#1A202C]">The JSON template</span>
-                        <button onClick={e => { e.stopPropagation(); setShowJsonTooltip(!showJsonTooltip); }}
-                          className="text-[11px] font-semibold text-[#718096] hover:text-[#5B6DC2] bg-[#F7FAFC] border border-[#E2E8F0] rounded px-1.5 py-0.5 transition-colors"
-                        >Why JSON?</button>
-
-                        {showJsonTooltip && (
-                          <div className="absolute top-full left-0 mt-1 z-40 bg-[#1A202C] text-white rounded-lg p-4 sm:p-5 max-w-[320px] animate-fade-in"
-                            onClick={e => e.stopPropagation()}>
-                            <p className="text-[13px] leading-[1.6] whitespace-pre-line">{WHY_JSON_CONTENT}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="relative bg-[#1A202C] rounded-[10px] p-5 overflow-y-auto" style={{ maxHeight: '400px', fontFamily: '"JetBrains Mono", "Fira Code", Consolas, monospace' }}>
-                        <button
-                          onClick={() => copyToClipboard(JSON.stringify(result.output_format.json_template, null, 2), 'JSON template copied to clipboard', 'json')}
-                          className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] text-white transition-colors"
-                          style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
-                        >
-                          {copiedItems['json'] ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
-                        </button>
-                        <pre className="text-[13px] leading-[1.6] overflow-x-auto">
-                          {JSON.stringify(result.output_format.json_template, null, 2).split('\n').map((line, i) => (
-                            <div key={i}>{renderJSONLine(line)}</div>
-                          ))}
-                        </pre>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ─── STEP 3: Your Agent Prompt ─── */}
-            {(stepsRevealed >= 3 || (isLoading && stepsRevealed >= 2)) && (
-              <div ref={el => stepRefs.current[2] = el} className="bg-white border border-[#E2E8F0] rounded-xl p-6 sm:p-8 animate-fade-in-up mb-8 scroll-mt-24">
-                <p className="text-[12px] font-semibold text-[#5B6DC2] uppercase tracking-wider mb-1">Step 3</p>
-                <h3 className="text-[24px] font-bold text-[#1A202C] mb-2">Your Agent Prompt</h3>
-                <p className="text-[15px] text-[#4A5568] mb-3">This system prompt incorporates everything: the role, context, task definition, output format, and quality guidelines. Copy it directly into your Custom GPT, Claude Project, or Copilot Agent.</p>
-
-                <p className="text-[13px] text-[#718096] mb-5">
-                  {'\uD83D\uDD17'} This prompt follows the Prompt Blueprint framework from Level 1.{' '}
-                  <a href="#playground" className="text-[#5B6DC2] hover:underline inline-flex items-center gap-1">
-                    Visit the Prompt Engineering Playground <ArrowRight size={12} />
-                  </a>
-                </p>
-
-                {isLoading && !result ? <StepThreeSkeleton /> : result && (
-                  <div className="bg-[#F7FAFC] border border-[#E2E8F0] rounded-[10px] p-5">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 text-[14px] text-[#1A202C] font-medium">
-                        <span>{'\uD83D\uDCCB'}</span> Your system prompt is ready
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => copyToClipboard(result.system_prompt, 'System prompt copied to clipboard', 'system-prompt')}
-                          className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-semibold text-white bg-[#5B6DC2] hover:bg-[#4A5AB0] transition-colors"
-                        >
-                          {copiedItems['system-prompt'] ? <><Check size={16} /> Copied</> : <><Copy size={16} /> Copy System Prompt</>}
-                        </button>
-                        <button onClick={() => setPromptExpanded(!promptExpanded)}
-                          className="flex items-center gap-1 text-[14px] text-[#718096] hover:text-[#5B6DC2] transition-colors"
-                          aria-expanded={promptExpanded}
-                        >
-                          {promptExpanded ? <><ChevronUp size={16} /> Hide Full Prompt</> : <><ChevronDown size={16} /> View Full Prompt</>}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: promptExpanded ? '500px' : '0' }}>
-                      <div className="mt-4 bg-white border border-[#E2E8F0] rounded-lg p-4 sm:p-5 overflow-y-auto" style={{ maxHeight: '460px' }}>
-                        <div className="text-[14px] text-[#2D3748] leading-[1.7] whitespace-pre-wrap">
-                          {renderColorCodedPrompt(result.system_prompt)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ─── STEP 4: Accountability (with checkboxes) ─── */}
-            {(stepsRevealed >= 4 || (isLoading && stepsRevealed >= 3)) && (
-              <div ref={el => stepRefs.current[3] = el} className="bg-white border border-[#E2E8F0] rounded-xl p-6 sm:p-8 animate-fade-in-up mb-8 scroll-mt-24">
-                <p className="text-[12px] font-semibold text-[#5B6DC2] uppercase tracking-wider mb-1">Step 4</p>
-                <h3 className="text-[24px] font-bold text-[#1A202C] mb-2">Human-in-the-Loop Checks</h3>
-                <p className="text-[15px] text-[#4A5568] mb-2">
-                  AI agents are powerful, but they need guardrails. Select the checks you want to include, then copy them individually or as part of your full prompt.
-                </p>
-                <p className="text-[13px] text-[#718096] mb-6">
-                  {'\u2611'} All checks are selected by default. Uncheck any you don't need.
-                </p>
-
-                {isLoading && !result ? <StepFourSkeleton /> : result && (
-                  <>
-                    <div className="space-y-3">
-                      {result.accountability.map((check, idx) => {
-                        const severity = getSeverityStyle(check.severity);
-                        const isSelected = !!selectedChecks[idx];
-                        return (
-                          <div
-                            key={idx}
-                            className="bg-white border rounded-lg p-4 sm:p-5 relative transition-all duration-200"
-                            style={{
-                              borderLeft: `4px solid ${isSelected ? '#5B6DC2' : '#E2E8F0'}`,
-                              borderColor: isSelected ? '#E2E8F0' : '#E2E8F0',
-                              borderLeftColor: isSelected ? '#5B6DC2' : '#A0AEC0',
-                              opacity: isSelected ? 1 : 0.6,
-                            }}
-                          >
-                            {/* Header row with checkbox */}
-                            <div className="flex items-start justify-between gap-3 mb-3">
-                              <div className="flex items-start gap-3">
-                                <button onClick={() => toggleCheck(idx)} className="mt-0.5 shrink-0 transition-colors" aria-label={`${isSelected ? 'Deselect' : 'Select'} ${check.name}`}>
-                                  {isSelected ? (
-                                    <CheckSquare size={20} className="text-[#5B6DC2]" />
-                                  ) : (
-                                    <Square size={20} className="text-[#A0AEC0] hover:text-[#718096]" />
-                                  )}
-                                </button>
-                                <h4 className="text-[16px] font-bold text-[#1A202C]">{check.name}</h4>
-                              </div>
-                              <span className="text-[11px] font-semibold rounded-[10px] px-2 py-0.5 shrink-0 capitalize"
-                                style={{ backgroundColor: severity.bg, color: severity.color, border: `1px solid ${severity.border}` }}>
-                                {check.severity}
-                              </span>
-                            </div>
-
-                            <div className="pl-8">
-                              <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">What to verify</p>
-                              <p className="text-[14px] text-[#4A5568] leading-[1.6]">{check.what_to_verify}</p>
-
-                              <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">Why this matters</p>
-                              <p className="text-[14px] text-[#4A5568] leading-[1.6]">{check.why_it_matters}</p>
-
-                              <p className="text-[12px] font-semibold text-[#A0AEC0] uppercase tracking-wide mt-3 mb-1">Add this to your prompt</p>
-                              <div className="relative bg-[#F7FAFC] border border-[#E2E8F0] rounded-md px-3.5 py-2.5">
-                                <p className="text-[13px] text-[#2D3748] leading-[1.6] pr-12"
-                                  style={{ fontFamily: '"JetBrains Mono", "Fira Code", Consolas, monospace' }}>
-                                  {check.prompt_instruction}
-                                </p>
-                                <button onClick={() => copyToClipboard(check.prompt_instruction, `"${check.name}" instruction copied`, `check-${idx}`)}
-                                  className="absolute top-2 right-2 text-[12px] text-[#5B6DC2] hover:underline">
-                                  {copiedItems[`check-${idx}`] ? 'Copied \u2713' : 'Copy'}
-                                </button>
-                              </div>
-
-                              <div className="flex items-center gap-1.5 mt-3">
-                                <Check size={14} className="text-[#5B6DC2]" />
-                                <span className="text-[12px] text-[#5B6DC2]">Included in your agent prompt (Step 3)</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* ─── COPY OPTIONS BAR ─── */}
-                    <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 bg-[#F7FAFC] border border-[#E2E8F0] rounded-xl">
-                      <p className="text-[13px] text-[#718096] shrink-0">
-                        {selectedCount} of {result.accountability.length} checks selected
-                      </p>
-                      <div className="flex-1" />
-                      <button
-                        onClick={() => copyToClipboard(buildSelectedChecksText(), 'Selected checks copied to clipboard', 'selected-checks')}
-                        disabled={selectedCount === 0}
-                        className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold border border-[#1A202C] text-[#1A202C] hover:bg-[#EDF2F7] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        {copiedItems['selected-checks'] ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Selected Checks</>}
-                      </button>
-                      <button
-                        onClick={() => copyToClipboard(buildFullPromptWithChecks(), 'Full prompt with checks copied to clipboard', 'full-with-checks')}
-                        disabled={selectedCount === 0}
-                        className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold text-white bg-[#5B6DC2] hover:bg-[#4A5AB0] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        {copiedItems['full-with-checks'] ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy Full Prompt + Checks</>}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* ─── FINAL ACTION BAR ─── */}
-            {stepsRevealed >= 4 && result && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8 animate-fade-in-up">
-                <button onClick={handleStartOver}
-                  className="px-6 py-2.5 rounded-full text-[14px] font-semibold border border-[#1A202C] text-[#1A202C] hover:bg-[#F7FAFC] transition-colors">
-                  Start Over
-                </button>
-                <a href="#home" className="text-[14px] text-[#5B6DC2] hover:underline flex items-center gap-1">
-                  Explore Level 3: Systemic Integration <ArrowRight size={14} />
-                </a>
-              </div>
-            )}
+        {/* ─── FINAL ACTION BAR ─── */}
+        {stepsRevealed >= 4 && result && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-8 animate-fade-in-up">
+            <button onClick={handleStartOver}
+              className="px-6 py-2.5 rounded-full text-[14px] font-semibold border border-[#1A202C] text-[#1A202C] hover:bg-[#F7FAFC] transition-colors">
+              Start Over
+            </button>
+            <a href="#home" className="text-[14px] text-[#5B6DC2] hover:underline flex items-center gap-1">
+              Explore Level 3: Systemic Integration <ArrowRight size={14} />
+            </a>
           </div>
         )}
       </div>
