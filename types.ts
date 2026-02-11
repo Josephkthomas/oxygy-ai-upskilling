@@ -72,3 +72,42 @@ export interface WizardAnswers {
   qualityChips: string[];
   qualityCustom: string;
 }
+
+// Agent Builder Toolkit types (Level 2)
+export interface AgentReadinessCriteria {
+  score: number;
+  assessment: string;
+}
+
+export interface AgentReadiness {
+  overall_score: number;
+  verdict: string;
+  rationale: string;
+  criteria: {
+    frequency: AgentReadinessCriteria;
+    consistency: AgentReadinessCriteria;
+    shareability: AgentReadinessCriteria;
+    complexity: AgentReadinessCriteria;
+    standardization_risk: AgentReadinessCriteria;
+  };
+  level1_points: string[];
+  level2_points: string[];
+}
+
+export interface AccountabilityCheck {
+  name: string;
+  severity: 'critical' | 'important' | 'recommended';
+  what_to_verify: string;
+  why_it_matters: string;
+  prompt_instruction: string;
+}
+
+export interface AgentDesignResult {
+  readiness: AgentReadiness;
+  output_format: {
+    human_readable: string;
+    json_template: Record<string, unknown>;
+  };
+  system_prompt: string;
+  accountability: AccountabilityCheck[];
+}

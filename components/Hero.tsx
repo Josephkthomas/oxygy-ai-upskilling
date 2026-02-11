@@ -1,16 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { innerDrivers, outerDrivers } from '../data/drivers';
 import type { DriverNode } from '../data/drivers';
 
 // ── Layout & Diagram Constants ───────────────────────────────────────
-const CX = 300;
-const CY = 300;
-const INNER_RADIUS = 140;
-const OUTER_RADIUS = 230;
-const NODE_SIZE = 36;
-const INNER_CIRC = 2 * Math.PI * INNER_RADIUS;
-const OUTER_CIRC = 2 * Math.PI * OUTER_RADIUS;
+const CX = 350;
+const CY = 350;
+const INNER_RADIUS = 170;
+const OUTER_RADIUS = 280;
+const NODE_SIZE = 44;
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;
 
@@ -20,7 +18,7 @@ function ringPositions(count: number, radius: number, offsetDeg = 0) {
     return {
       x: CX + radius * Math.cos(toRad(angle)),
       y: CY + radius * Math.sin(toRad(angle)),
-      angleDeg: angle + 90, // normalized so 0 = top
+      angleDeg: angle + 90,
     };
   });
 }
@@ -28,86 +26,90 @@ function ringPositions(count: number, radius: number, offsetDeg = 0) {
 const innerPositions = ringPositions(6, INNER_RADIUS, 0);
 const outerPositions = ringPositions(6, OUTER_RADIUS, 30);
 
-// ── Scroll-progress ranges from the PRD ──────────────────────────────
-const RANGES = {
-  badge: [0, 0.06],
-  headline: [0.04, 0.16],
-  center: [0.12, 0.24],
-  subCta: [0.16, 0.28],
-  innerRing: [0.22, 0.44],
-  innerNodes: [0.28, 0.50],
-  innerLabel: [0.42, 0.50],
-  outerRing: [0.46, 0.66],
-  outerNodes: [0.52, 0.72],
-  outerLabel: [0.66, 0.74],
-  lines: [0.70, 0.82],
-} as const;
-
-// Ease-out cubic for smooth deceleration at the end of each transition
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3);
+// ── Orbit Animation CSS ─────────────────────────────────────────────
+const ORBIT_STYLES = `
+@keyframes hero-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
-
-function lerp(progress: number, start: number, end: number): number {
-  if (progress <= start) return 0;
-  if (progress >= end) return 1;
-  const t = (progress - start) / (end - start);
-  return easeOutCubic(t);
+.hero-inner-orbit {
+  animation: hero-orbit 80s linear infinite;
+  transform-origin: ${CX}px ${CY}px;
 }
+.hero-outer-orbit {
+  animation: hero-orbit 120s linear infinite reverse;
+  transform-origin: ${CX}px ${CY}px;
+}
+.hero-inner-node-upright {
+  animation: hero-orbit 80s linear infinite reverse;
+}
+.hero-outer-node-upright {
+  animation: hero-orbit 120s linear infinite;
+}
+.hero-diagram-paused .hero-inner-orbit,
+.hero-diagram-paused .hero-outer-orbit,
+.hero-diagram-paused .hero-inner-node-upright,
+.hero-diagram-paused .hero-outer-node-upright {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-inner-orbit, .hero-outer-orbit,
+  .hero-inner-node-upright, .hero-outer-node-upright {
+    animation: none !important;
+  }
+}
+`;
 
 // ── Tooltip Component ────────────────────────────────────────────────
 interface TooltipProps {
   node: DriverNode;
   x: number;
   y: number;
-  containerRect: DOMRect | null;
+  containerWidth: number;
+  containerHeight: number;
 }
 
-const Tooltip: React.FC<TooltipProps> = ({ node, x, y, containerRect }) => {
-  if (!containerRect) return null;
+const Tooltip: React.FC<TooltipProps> = ({
+  node,
+  x,
+  y,
+  containerWidth,
+  containerHeight,
+}) => {
+  const IconComp = node.icon;
+  const isInternal = node.ring === 'internal';
 
-  const isRight = x > CX;
-  const isBottom = y > CY;
+  const TOOLTIP_W = 260;
+  const GAP = 28;
 
-  // Position tooltip adjacent to node, flipping if needed
-  const tooltipStyle: React.CSSProperties = {
+  const style: React.CSSProperties = {
     position: 'absolute',
     zIndex: 50,
-    maxWidth: '260px',
-    width: '260px',
+    width: `${TOOLTIP_W}px`,
     background: '#FFFFFF',
     border: '1px solid #E2E8F0',
     borderRadius: '12px',
     padding: '16px 20px',
     boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
     pointerEvents: 'none',
-    opacity: 1,
-    transition: 'opacity 200ms ease, transform 200ms ease',
   };
 
-  // Convert SVG coordinates to percentage-based positioning
-  const svgWidth = 600;
-  const svgHeight = 600;
-  const pctX = (x / svgWidth) * 100;
-  const pctY = (y / svgHeight) * 100;
-
-  if (isRight) {
-    tooltipStyle.left = `${pctX + 5}%`;
+  // Horizontal: place tooltip away from diagram center
+  if (x < containerWidth / 2) {
+    style.left = `${x + GAP}px`;
   } else {
-    tooltipStyle.right = `${100 - pctX + 5}%`;
+    style.left = `${Math.max(8, x - TOOLTIP_W - GAP)}px`;
   }
 
-  if (isBottom) {
-    tooltipStyle.bottom = `${100 - pctY + 3}%`;
+  // Vertical: place tooltip away from diagram center
+  if (y < containerHeight / 2) {
+    style.top = `${y + GAP}px`;
   } else {
-    tooltipStyle.top = `${pctY + 3}%`;
+    style.bottom = `${Math.max(8, containerHeight - y + GAP)}px`;
   }
-
-  const IconComp = node.icon;
-  const isInternal = node.ring === 'internal';
 
   return (
-    <div style={tooltipStyle} role="tooltip">
+    <div style={style} role="tooltip">
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <IconComp
           size={18}
@@ -124,13 +126,7 @@ const Tooltip: React.FC<TooltipProps> = ({ node, x, y, containerRect }) => {
               : undefined
           }
         />
-        <span
-          style={{
-            fontSize: '15px',
-            fontWeight: 700,
-            color: '#1A202C',
-          }}
-        >
+        <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A202C' }}>
           {node.label}
         </span>
       </div>
@@ -172,13 +168,11 @@ const Tooltip: React.FC<TooltipProps> = ({ node, x, y, containerRect }) => {
 
 // ── Concentric Circles Diagram ───────────────────────────────────────
 interface DiagramProps {
-  progress: number;
   isMobile: boolean;
   reducedMotion: boolean;
 }
 
 const ConcentricCircles: React.FC<DiagramProps> = ({
-  progress,
   isMobile,
   reducedMotion,
 }) => {
@@ -188,26 +182,23 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
     x: number;
     y: number;
   } | null>(null);
-  const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [isPaused, setIsPaused] = useState(false);
   const [tappedNode, setTappedNode] = useState<string | null>(null);
 
-  // On mobile, use tap instead of hover
-  const handleNodeInteraction = useCallback(
-    (node: DriverNode, x: number, y: number) => {
-      if (isMobile) {
-        if (tappedNode === node.label) {
-          setTappedNode(null);
-          setHoveredNode(null);
-        } else {
-          setTappedNode(node.label);
-          setHoveredNode({ node, x, y });
-        }
-      }
-    },
-    [isMobile, tappedNode],
-  );
+  // Track container size for tooltip positioning
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateSize = () => {
+      const rect = containerRef.current!.getBoundingClientRect();
+      setContainerSize({ width: rect.width, height: rect.height });
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
 
-  // Dismiss tooltip on outside tap (mobile)
+  // Mobile tap-to-dismiss
   useEffect(() => {
     if (!isMobile || !tappedNode) return;
     const handleTap = (e: MouseEvent) => {
@@ -215,39 +206,74 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
       if (!target.closest('[data-driver-node]')) {
         setTappedNode(null);
         setHoveredNode(null);
+        setIsPaused(false);
       }
     };
     document.addEventListener('click', handleTap);
     return () => document.removeEventListener('click', handleTap);
   }, [isMobile, tappedNode]);
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const updateRect = () =>
-      setContainerRect(containerRef.current!.getBoundingClientRect());
-    updateRect();
-    window.addEventListener('resize', updateRect);
-    return () => window.removeEventListener('resize', updateRect);
-  }, []);
+  // Hover: get visual position via getBoundingClientRect
+  const handleNodeHover = useCallback(
+    (e: React.MouseEvent | React.FocusEvent, driver: DriverNode) => {
+      const target = e.currentTarget as SVGGElement;
+      const rect = target.getBoundingClientRect();
+      const containerR = containerRef.current?.getBoundingClientRect();
+      if (!containerR) return;
+      setHoveredNode({
+        node: driver,
+        x: rect.left + rect.width / 2 - containerR.left,
+        y: rect.top + rect.height / 2 - containerR.top,
+      });
+    },
+    [],
+  );
 
-  // For mobile/reduced-motion, show everything at final state
-  const p = isMobile || reducedMotion ? 1 : progress;
-
-  const centerOpacity = lerp(p, RANGES.center[0], RANGES.center[1]);
-  const centerScale = 0.8 + 0.2 * centerOpacity;
-  const innerRingProgress = lerp(p, RANGES.innerRing[0], RANGES.innerRing[1]);
-  const outerRingProgress = lerp(p, RANGES.outerRing[0], RANGES.outerRing[1]);
-  const innerLabelOpacity = lerp(p, RANGES.innerLabel[0], RANGES.innerLabel[1]);
-  const outerLabelOpacity = lerp(p, RANGES.outerLabel[0], RANGES.outerLabel[1]);
-  const linesOpacity = lerp(p, RANGES.lines[0], RANGES.lines[1]) * 0.5;
+  // Mobile tap handler
+  const handleNodeTap = useCallback(
+    (e: React.MouseEvent, driver: DriverNode) => {
+      if (!isMobile) return;
+      if (tappedNode === driver.label) {
+        setTappedNode(null);
+        setHoveredNode(null);
+        setIsPaused(false);
+      } else {
+        setTappedNode(driver.label);
+        setIsPaused(true);
+        const target = e.currentTarget as SVGGElement;
+        const rect = target.getBoundingClientRect();
+        const containerR = containerRef.current?.getBoundingClientRect();
+        if (containerR) {
+          setHoveredNode({
+            node: driver,
+            x: rect.left + rect.width / 2 - containerR.left,
+            y: rect.top + rect.height / 2 - containerR.top,
+          });
+        }
+      }
+    },
+    [isMobile, tappedNode],
+  );
 
   return (
     <div
       ref={containerRef}
-      style={{ position: 'relative', width: '100%', maxWidth: '500px' }}
+      className={isPaused ? 'hero-diagram-paused' : ''}
+      style={{ position: 'relative', width: '100%', maxWidth: '600px' }}
+      onMouseEnter={() => {
+        if (!isMobile) setIsPaused(true);
+      }}
+      onMouseLeave={() => {
+        if (!isMobile) {
+          setIsPaused(false);
+          setHoveredNode(null);
+        }
+      }}
     >
+      <style>{ORBIT_STYLES}</style>
+
       <svg
-        viewBox="0 0 600 600"
+        viewBox="0 0 700 700"
         role="img"
         aria-label="Interactive diagram showing AI transformation drivers. Inner ring: 6 internal drivers including Growth Mindset, Thinking Beyond, Collaboration, Sharing Learnings, Learning to Learn, and Curiosity. Outer ring: 6 external drivers including Personalized Pathways, Incentive Structures, Training Programs, Change Management, Communication, and Tools & Resources."
         style={{ width: '100%', height: 'auto', overflow: 'visible' }}
@@ -260,51 +286,15 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
           </radialGradient>
         </defs>
 
-        {/* Connecting lines — center to inner nodes */}
-        {innerPositions.map((pos, i) => (
-          <line
-            key={`conn-inner-${i}`}
-            x1={CX}
-            y1={CY}
-            x2={pos.x}
-            y2={pos.y}
-            stroke="#E2E8F0"
-            strokeWidth="1"
-            opacity={linesOpacity}
-          />
-        ))}
-
-        {/* Short outward lines from outer nodes */}
-        {outerPositions.map((pos, i) => {
-          const angle = toRad(
-            (i * 360) / 6 - 90 + 30,
-          );
-          const endX = pos.x + 15 * Math.cos(angle);
-          const endY = pos.y + 15 * Math.sin(angle);
-          return (
-            <line
-              key={`conn-outer-${i}`}
-              x1={pos.x}
-              y1={pos.y}
-              x2={endX}
-              y2={endY}
-              stroke="#E2E8F0"
-              strokeWidth="1"
-              opacity={linesOpacity * 0.6}
-            />
-          );
-        })}
-
         {/* Inner ring fill tint */}
         <circle
           cx={CX}
           cy={CY}
           r={INNER_RADIUS}
           fill="rgba(56, 178, 172, 0.04)"
-          opacity={innerRingProgress}
         />
 
-        {/* Inner ring stroke (draw-in animation) */}
+        {/* Inner ring stroke */}
         <circle
           cx={CX}
           cy={CY}
@@ -312,15 +302,9 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
           fill="none"
           stroke="#38B2AC"
           strokeWidth="2"
-          style={{
-            strokeDasharray: INNER_CIRC,
-            strokeDashoffset: INNER_CIRC * (1 - innerRingProgress),
-            transform: 'rotate(-90deg)',
-            transformOrigin: `${CX}px ${CY}px`,
-          }}
         />
 
-        {/* Outer ring stroke (draw-in animation) — Oxygy yellow */}
+        {/* Outer ring stroke (dashed yellow) */}
         <circle
           cx={CX}
           cy={CY}
@@ -329,32 +313,13 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
           stroke="#E8C547"
           strokeWidth="1.5"
           strokeDasharray="8 6"
-          style={{
-            strokeDasharray: `8 6`,
-            strokeDashoffset:
-              OUTER_CIRC * (1 - outerRingProgress),
-            transform: 'rotate(-90deg)',
-            transformOrigin: `${CX}px ${CY}px`,
-          }}
         />
 
         {/* Center glow */}
-        <circle
-          cx={CX}
-          cy={CY}
-          r={60}
-          fill="url(#center-glow)"
-          opacity={centerOpacity}
-        />
+        <circle cx={CX} cy={CY} r={60} fill="url(#center-glow)" />
 
         {/* Center visual — nested department clusters */}
-        <g
-          style={{
-            opacity: centerOpacity,
-            transform: `scale(${centerScale})`,
-            transformOrigin: `${CX}px ${CY}px`,
-          }}
-        >
+        <g>
           {/* Top cluster — 3 people (teal) */}
           {[-12, 0, 12].map((dx, i) => {
             const px = CX + dx;
@@ -370,7 +335,6 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
               </g>
             );
           })}
-
           {/* Bottom-left cluster — 2 people (darker teal) */}
           {[-6, 6].map((dx, i) => {
             const px = CX - 24 + dx;
@@ -386,7 +350,6 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
               </g>
             );
           })}
-
           {/* Bottom-right cluster — 2 people (lighter teal) */}
           {[-6, 6].map((dx, i) => {
             const px = CX + 24 + dx;
@@ -409,184 +372,195 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
           x={CX}
           y={CY + 42}
           textAnchor="middle"
-          style={{
-            fontSize: '12px',
-            fontWeight: 600,
-            fill: '#2C9A94',
-            opacity: centerOpacity,
-          }}
+          style={{ fontSize: '12px', fontWeight: 600, fill: '#2C9A94' }}
         >
           Your Organization
         </text>
 
-        {/* Inner ring nodes */}
-        {innerPositions.map((pos, i) => {
-          const nodeProgress = lerp(
-            p,
-            RANGES.innerNodes[0] + (i * 0.018),
-            RANGES.innerNodes[0] + (i * 0.018) + 0.04,
-          );
-          const scale = nodeProgress;
-          const driver = innerDrivers[i];
-          const IconComp = driver.icon;
-          const isHovered = hoveredNode?.node.label === driver.label;
+        {/* ── Rotating inner ring group — clockwise ── */}
+        <g className="hero-inner-orbit">
+          {/* Connecting lines from center to inner nodes */}
+          {innerPositions.map((pos, i) => (
+            <line
+              key={`conn-inner-${i}`}
+              x1={CX}
+              y1={CY}
+              x2={pos.x}
+              y2={pos.y}
+              stroke="#E2E8F0"
+              strokeWidth="1"
+              opacity="0.35"
+            />
+          ))}
 
-          return (
-            <g
-              key={`inner-${i}`}
-              data-driver-node
-              tabIndex={0}
-              role="button"
-              aria-label={`${driver.label}: ${driver.description}`}
-              style={{
-                cursor: 'pointer',
-                transform: `scale(${scale})`,
-                transformOrigin: `${pos.x}px ${pos.y}px`,
-                outline: 'none',
-              }}
-              onMouseEnter={() => {
-                if (!isMobile)
-                  setHoveredNode({ node: driver, x: pos.x, y: pos.y });
-              }}
-              onMouseLeave={() => {
-                if (!isMobile) setHoveredNode(null);
-              }}
-              onFocus={() =>
-                setHoveredNode({ node: driver, x: pos.x, y: pos.y })
-              }
-              onBlur={() => setHoveredNode(null)}
-              onClick={() => handleNodeInteraction(driver, pos.x, pos.y)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setHoveredNode(null);
-              }}
-            >
-              {/* Node circle */}
-              <circle
-                cx={pos.x}
-                cy={pos.y}
-                r={NODE_SIZE / 2}
-                fill={isHovered ? '#4FD1C5' : '#38B2AC'}
+          {/* Inner nodes with counter-rotation to stay upright */}
+          {innerPositions.map((pos, i) => {
+            const driver = innerDrivers[i];
+            const IconComp = driver.icon;
+            const isHovered = hoveredNode?.node.label === driver.label;
+
+            return (
+              <g
+                key={`inner-${i}`}
+                className="hero-inner-node-upright"
                 style={{
-                  transition: 'fill 200ms ease, r 200ms ease',
-                  filter: isHovered
-                    ? 'drop-shadow(0 0 4px rgba(56,178,172,0.3))'
-                    : 'none',
+                  transformOrigin: `${pos.x}px ${pos.y}px`,
+                  cursor: 'pointer',
+                  outline: 'none',
                 }}
-              />
-              {/* Icon — rendered as foreignObject for Lucide compatibility */}
-              <foreignObject
-                x={pos.x - 9}
-                y={pos.y - 9}
-                width="18"
-                height="18"
-                style={{ pointerEvents: 'none' }}
+                data-driver-node
+                tabIndex={0}
+                role="button"
+                aria-label={`${driver.label}: ${driver.description}`}
+                onMouseEnter={(e) => {
+                  if (!isMobile) handleNodeHover(e, driver);
+                }}
+                onMouseLeave={() => {
+                  if (!isMobile) setHoveredNode(null);
+                }}
+                onFocus={(e) => handleNodeHover(e, driver)}
+                onBlur={() => setHoveredNode(null)}
+                onClick={(e) => handleNodeTap(e, driver)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setHoveredNode(null);
+                }}
               >
-                <div
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={NODE_SIZE / 2}
+                  fill={isHovered ? '#4FD1C5' : '#38B2AC'}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '18px',
-                    height: '18px',
+                    transition: 'fill 200ms ease',
+                    filter: isHovered
+                      ? 'drop-shadow(0 0 4px rgba(56,178,172,0.3))'
+                      : 'none',
                   }}
+                />
+                <foreignObject
+                  x={pos.x - 11}
+                  y={pos.y - 11}
+                  width="22"
+                  height="22"
+                  style={{ pointerEvents: 'none' }}
                 >
-                  <IconComp size={14} color="#FFFFFF" strokeWidth={2.5} />
-                </div>
-              </foreignObject>
-            </g>
-          );
-        })}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '22px',
+                      height: '22px',
+                    }}
+                  >
+                    <IconComp size={17} color="#FFFFFF" strokeWidth={2.5} />
+                  </div>
+                </foreignObject>
+              </g>
+            );
+          })}
+        </g>
 
-        {/* Outer ring nodes */}
-        {outerPositions.map((pos, i) => {
-          const nodeProgress = lerp(
-            p,
-            RANGES.outerNodes[0] + (i * 0.018),
-            RANGES.outerNodes[0] + (i * 0.018) + 0.04,
-          );
-          const scale = nodeProgress;
-          const driver = outerDrivers[i];
-          const IconComp = driver.icon;
-          const isHovered = hoveredNode?.node.label === driver.label;
+        {/* ── Rotating outer ring group — counter-clockwise ── */}
+        <g className="hero-outer-orbit">
+          {/* Short outward lines from outer nodes */}
+          {outerPositions.map((pos, i) => {
+            const angle = toRad((i * 360) / 6 - 90 + 30);
+            const endX = pos.x + 18 * Math.cos(angle);
+            const endY = pos.y + 18 * Math.sin(angle);
+            return (
+              <line
+                key={`conn-outer-${i}`}
+                x1={pos.x}
+                y1={pos.y}
+                x2={endX}
+                y2={endY}
+                stroke="#E2E8F0"
+                strokeWidth="1"
+                opacity="0.25"
+              />
+            );
+          })}
 
-          return (
-            <g
-              key={`outer-${i}`}
-              data-driver-node
-              tabIndex={0}
-              role="button"
-              aria-label={`${driver.label}: ${driver.description}`}
-              style={{
-                cursor: 'pointer',
-                transform: `scale(${scale})`,
-                transformOrigin: `${pos.x}px ${pos.y}px`,
-                outline: 'none',
-              }}
-              onMouseEnter={() => {
-                if (!isMobile)
-                  setHoveredNode({ node: driver, x: pos.x, y: pos.y });
-              }}
-              onMouseLeave={() => {
-                if (!isMobile) setHoveredNode(null);
-              }}
-              onFocus={() =>
-                setHoveredNode({ node: driver, x: pos.x, y: pos.y })
-              }
-              onBlur={() => setHoveredNode(null)}
-              onClick={() => handleNodeInteraction(driver, pos.x, pos.y)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setHoveredNode(null);
-              }}
-            >
-              <circle
-                cx={pos.x}
-                cy={pos.y}
-                r={NODE_SIZE / 2}
-                fill={isHovered ? '#FFF8E1' : '#FFFFFF'}
-                stroke="#D4A843"
-                strokeWidth={isHovered ? 3 : 2}
+          {/* Outer nodes with counter-rotation to stay upright */}
+          {outerPositions.map((pos, i) => {
+            const driver = outerDrivers[i];
+            const IconComp = driver.icon;
+            const isHovered = hoveredNode?.node.label === driver.label;
+
+            return (
+              <g
+                key={`outer-${i}`}
+                className="hero-outer-node-upright"
                 style={{
-                  transition:
-                    'fill 200ms ease, stroke-width 200ms ease',
-                  filter: isHovered
-                    ? 'drop-shadow(0 0 4px rgba(212,168,67,0.25))'
-                    : 'none',
+                  transformOrigin: `${pos.x}px ${pos.y}px`,
+                  cursor: 'pointer',
+                  outline: 'none',
                 }}
-              />
-              <foreignObject
-                x={pos.x - 9}
-                y={pos.y - 9}
-                width="18"
-                height="18"
-                style={{ pointerEvents: 'none' }}
+                data-driver-node
+                tabIndex={0}
+                role="button"
+                aria-label={`${driver.label}: ${driver.description}`}
+                onMouseEnter={(e) => {
+                  if (!isMobile) handleNodeHover(e, driver);
+                }}
+                onMouseLeave={() => {
+                  if (!isMobile) setHoveredNode(null);
+                }}
+                onFocus={(e) => handleNodeHover(e, driver)}
+                onBlur={() => setHoveredNode(null)}
+                onClick={(e) => handleNodeTap(e, driver)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setHoveredNode(null);
+                }}
               >
-                <div
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={NODE_SIZE / 2}
+                  fill={isHovered ? '#FFF8E1' : '#FFFFFF'}
+                  stroke="#D4A843"
+                  strokeWidth={isHovered ? 3 : 2}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '18px',
-                    height: '18px',
+                    transition: 'fill 200ms ease, stroke-width 200ms ease',
+                    filter: isHovered
+                      ? 'drop-shadow(0 0 4px rgba(212,168,67,0.25))'
+                      : 'none',
                   }}
+                />
+                <foreignObject
+                  x={pos.x - 11}
+                  y={pos.y - 11}
+                  width="22"
+                  height="22"
+                  style={{ pointerEvents: 'none' }}
                 >
-                  <IconComp size={14} color="#D4A843" strokeWidth={2.5} />
-                </div>
-              </foreignObject>
-            </g>
-          );
-        })}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '22px',
+                      height: '22px',
+                    }}
+                  >
+                    <IconComp size={17} color="#D4A843" strokeWidth={2.5} />
+                  </div>
+                </foreignObject>
+              </g>
+            );
+          })}
+        </g>
       </svg>
 
-      {/* Ring labels (HTML overlays) */}
-      {/* "What Your People Bring" — centered between inner & outer rings, above Brain icon */}
+      {/* Ring labels (HTML overlays — static, don't rotate) */}
+      {/* "What Your People Bring" — between rings, top center */}
       <div
         style={{
           position: 'absolute',
-          top: '18%',
+          top: '16%',
           left: '50%',
           transform: 'translateX(-50%)',
-          opacity: innerLabelOpacity,
-          transition: reducedMotion ? 'none' : undefined,
         }}
       >
         <span
@@ -608,15 +582,13 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
         </span>
       </div>
 
-      {/* "What We Provide" — centered below outer yellow ring */}
+      {/* "What We Provide" — below outer ring, bottom center */}
       <div
         style={{
           position: 'absolute',
-          bottom: '4%',
+          bottom: '3%',
           left: '50%',
           transform: 'translateX(-50%)',
-          opacity: outerLabelOpacity,
-          transition: reducedMotion ? 'none' : undefined,
         }}
       >
         <span
@@ -644,7 +616,8 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
           node={hoveredNode.node}
           x={hoveredNode.x}
           y={hoveredNode.y}
-          containerRect={containerRect}
+          containerWidth={containerSize.width}
+          containerHeight={containerSize.height}
         />
       )}
     </div>
@@ -653,9 +626,6 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
 
 // ── Hero Component ───────────────────────────────────────────────────
 export const Hero: React.FC = () => {
-  const sectionRef = useRef<HTMLElement>(null);
-  const rafRef = useRef<number>(0);
-  const [scrollProgress, setScrollProgress] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.innerWidth < 768,
@@ -678,79 +648,11 @@ export const Hero: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Scroll handler — uses smooth interpolation for fluid animation
-  useEffect(() => {
-    if (isMobile || prefersReducedMotion) return;
-
-    const target = { value: 0 };
-    const current = { value: 0 };
-
-    const handleScroll = () => {
-      const section = sectionRef.current;
-      if (!section) return;
-      const rect = section.getBoundingClientRect();
-      const scrollableHeight = section.offsetHeight - window.innerHeight;
-      if (scrollableHeight <= 0) return;
-      const raw = -rect.top / scrollableHeight;
-      target.value = Math.max(0, Math.min(1, raw));
-    };
-
-    const tick = () => {
-      const diff = target.value - current.value;
-      if (Math.abs(diff) > 0.00005) {
-        current.value += diff * 0.12;
-        setScrollProgress(current.value);
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    current.value = target.value;
-    setScrollProgress(current.value);
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [isMobile, prefersReducedMotion]);
-
-  const noAnim = isMobile || prefersReducedMotion;
-  const p = noAnim ? 1 : scrollProgress;
-
-  // Text element visibility based on scroll
-  const badgeOpacity = lerp(p, RANGES.badge[0], RANGES.badge[1]);
-  const headlineOpacity = lerp(p, RANGES.headline[0], RANGES.headline[1]);
-  const headlineY = 20 * (1 - headlineOpacity);
-  const subCtaOpacity = lerp(p, RANGES.subCta[0], RANGES.subCta[1]);
-
   return (
-    <section
-      ref={sectionRef}
-      id="hero"
-      style={{
-        position: 'relative',
-        background: '#F7FAFC',
-        height: noAnim ? 'auto' : undefined,
-      }}
-    >
-      {/* Scroll runway height (desktop only) */}
-      {!noAnim && (
-        <style>{`
-          #hero { height: 300vh; }
-          @media (min-width: 768px) and (max-width: 1199px) {
-            #hero { height: 260vh; }
-          }
-        `}</style>
-      )}
-
-      {/* Sticky / static viewport */}
+    <section id="hero" style={{ background: '#F7FAFC' }}>
       <div
-        className={noAnim ? '' : 'sticky top-0'}
         style={{
-          height: noAnim ? 'auto' : '100vh',
-          minHeight: noAnim ? '100vh' : undefined,
+          minHeight: '100vh',
           width: '100%',
           display: 'flex',
           alignItems: 'center',
@@ -765,16 +667,16 @@ export const Hero: React.FC = () => {
             padding: isMobile ? '100px 24px 48px' : '0 48px',
           }}
         >
-          {/* Left column — Text (~42%) */}
+          {/* Left column — Text (~40%) */}
           <div
             style={{
-              width: isMobile ? '100%' : '42%',
+              width: isMobile ? '100%' : '40%',
               flexShrink: 0,
               paddingRight: isMobile ? 0 : '32px',
             }}
           >
             {/* Badge */}
-            <div style={{ opacity: badgeOpacity }}>
+            <div>
               <span
                 className="inline-block uppercase tracking-widest"
                 style={{
@@ -800,10 +702,6 @@ export const Hero: React.FC = () => {
                 lineHeight: 1.15,
                 marginTop: '20px',
                 maxWidth: '520px',
-                opacity: headlineOpacity,
-                transform: noAnim
-                  ? undefined
-                  : `translateY(${headlineY}px)`,
               }}
             >
               Your AI Transformation
@@ -834,7 +732,6 @@ export const Hero: React.FC = () => {
                 lineHeight: 1.7,
                 marginTop: '24px',
                 maxWidth: '480px',
-                opacity: subCtaOpacity,
               }}
             >
               There is no one-size-fits-all model for AI adoption. It starts
@@ -850,7 +747,7 @@ export const Hero: React.FC = () => {
                   ? 'flex flex-col gap-3 w-full'
                   : 'flex flex-row gap-4'
               }
-              style={{ marginTop: '32px', opacity: subCtaOpacity }}
+              style={{ marginTop: '32px' }}
             >
               <a
                 href="#journey"
@@ -902,60 +799,25 @@ export const Hero: React.FC = () => {
             </div>
           </div>
 
-          {/* Right column — Diagram (~58%) */}
+          {/* Right column — Diagram (~60%) */}
           <div
             style={{
-              width: isMobile ? '100%' : '58%',
+              width: isMobile ? '100%' : '60%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginTop: isMobile ? '40px' : 0,
-              maxWidth: isMobile ? '360px' : undefined,
+              maxWidth: isMobile ? '400px' : undefined,
               marginLeft: isMobile ? 'auto' : undefined,
               marginRight: isMobile ? 'auto' : undefined,
             }}
           >
             <ConcentricCircles
-              progress={scrollProgress}
               isMobile={isMobile}
               reducedMotion={prefersReducedMotion}
             />
           </div>
         </div>
-
-        {/* Scroll-down indicator — centered at bottom of viewport */}
-        {!noAnim && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '32px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '4px',
-              opacity: scrollProgress < 0.1 ? 1 - scrollProgress * 10 : 0,
-              transition: 'opacity 300ms ease',
-              pointerEvents: 'none',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 500,
-                color: '#A0AEC0',
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-              }}
-            >
-              Scroll to explore
-            </span>
-            <div className="animate-bounce" style={{ color: '#A0AEC0' }}>
-              <ChevronDown size={22} />
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

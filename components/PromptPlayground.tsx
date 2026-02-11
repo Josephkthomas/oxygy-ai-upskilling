@@ -8,7 +8,7 @@ import type { PromptResult, WizardAnswers } from '../types';
 
 type Mode = 'enhance' | 'build';
 
-const CARD_MIN_HEIGHT = '156px';
+const CARD_MIN_HEIGHT = '180px';
 
 export const PromptPlayground: React.FC = () => {
   const [activeMode, setActiveMode] = useState<Mode>('enhance');
@@ -17,13 +17,16 @@ export const PromptPlayground: React.FC = () => {
   const [originalPrompt, setOriginalPrompt] = useState('');
   const [resultMode, setResultMode] = useState<Mode>('enhance');
   const [copied, setCopied] = useState(false);
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const [showResultsBanner, setShowResultsBanner] = useState(false);
   const [visibleBlocks, setVisibleBlocks] = useState(0);
   const [showMarkdownTooltip, setShowMarkdownTooltip] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
+  const modeCardsRef = useRef<HTMLDivElement>(null);
   const { enhance, isLoading, error, clearError } = useGeminiApi();
   const { isListening, isSupported, startListening, stopListening } = useSpeechRecognition();
 
@@ -53,7 +56,6 @@ export const PromptPlayground: React.FC = () => {
     if (data) {
       setResult(data);
       setResultMode('enhance');
-      // Show "view results" banner
       setShowResultsBanner(true);
       setTimeout(() => {
         setShowResultsBanner(false);
@@ -103,6 +105,25 @@ export const PromptPlayground: React.FC = () => {
     }
   };
 
+  const showToastNotification = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2500);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+  };
+
   const handleCopy = async () => {
     if (!result) return;
     const fullPrompt = PROMPT_BLUEPRINT.map((block) => {
@@ -110,21 +131,18 @@ export const PromptPlayground: React.FC = () => {
       return result[key];
     }).join('\n\n');
 
-    try {
-      await navigator.clipboard.writeText(fullPrompt);
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = fullPrompt;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-    }
-
+    await copyToClipboard(fullPrompt);
     setCopied(true);
-    setShowToast(true);
+    showToastNotification('Prompt copied to clipboard');
     setTimeout(() => setCopied(false), 2500);
-    setTimeout(() => setShowToast(false), 2500);
+  };
+
+  const handleCopySection = async (sectionKey: string, label: string, content: string) => {
+    const md = `## ${label}\n${content}`;
+    await copyToClipboard(md);
+    setCopiedSection(sectionKey);
+    showToastNotification(`${label} copied in markdown format`);
+    setTimeout(() => setCopiedSection(null), 2500);
   };
 
   const buildMarkdownPrompt = (r: PromptResult): string => {
@@ -134,20 +152,14 @@ export const PromptPlayground: React.FC = () => {
   const handleCopyMarkdown = async () => {
     if (!result) return;
     const md = buildMarkdownPrompt(result);
-    try {
-      await navigator.clipboard.writeText(md);
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = md;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-    }
+    await copyToClipboard(md);
     setCopied(true);
-    setShowToast(true);
+    showToastNotification('Markdown prompt copied to clipboard');
     setTimeout(() => setCopied(false), 2500);
-    setTimeout(() => setShowToast(false), 2500);
+  };
+
+  const scrollToModes = () => {
+    modeCardsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   return (
@@ -162,9 +174,9 @@ export const PromptPlayground: React.FC = () => {
           Back to Level 1
         </a>
 
-        {/* ─── HERO: Title + Description (centered, two-line title) ─── */}
+        {/* ─── HERO: Title (centered, two-line) ─── */}
         <div ref={inputAreaRef} className="mb-8 text-center">
-          <h1 className="text-[36px] md:text-[48px] font-bold text-[#1A202C] leading-[1.15] mb-3">
+          <h1 className="text-[36px] md:text-[48px] font-bold text-[#1A202C] leading-[1.15] mb-6">
             <span className="relative inline-block">
               Better Prompts
               <span className="absolute left-0 -bottom-1 w-full h-[4px] bg-[#38B2AC] opacity-80 rounded-full" />
@@ -172,13 +184,45 @@ export const PromptPlayground: React.FC = () => {
             <br />
             Get Better Results
           </h1>
-          <p className="text-[16px] md:text-[17px] text-[#4A5568] leading-[1.6] max-w-xl mx-auto">
-            The difference between a good AI output and a great one starts with how you ask.
-          </p>
+
+          {/* ─── FUN FACT CARD ─── */}
+          <div className="max-w-2xl mx-auto mb-4">
+            <div
+              className="relative rounded-2xl px-8 py-6 text-center overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #F7FAFC 0%, #EDF2F7 50%, #E6FFFA 100%)',
+                border: '1px solid #E2E8F0',
+              }}
+            >
+              {/* Decorative accent dots */}
+              <div className="absolute top-3 left-4 flex gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#38B2AC] opacity-40" />
+                <span className="w-2 h-2 rounded-full bg-[#FBE8A6] opacity-60" />
+                <span className="w-2 h-2 rounded-full bg-[#FBCEB1] opacity-40" />
+              </div>
+
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#38B2AC] mb-2">
+                Did you know?
+              </p>
+              <p className="text-[16px] md:text-[17px] text-[#2D3748] leading-[1.6] font-medium mb-1">
+                A well-structured prompt can improve AI output quality by up to <span className="text-[#38B2AC] font-bold">60%</span>.
+              </p>
+              <p className="text-[14px] text-[#718096] leading-[1.6] mb-5">
+                The difference between a vague ask and a structured 6-part prompt is the difference between a generic draft and an expert-level deliverable.
+              </p>
+
+              <button
+                onClick={scrollToModes}
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#1A202C] text-white text-[14px] font-semibold rounded-full hover:bg-[#2D3748] transition-colors"
+              >
+                Choose your mode below <ChevronDown size={15} className="animate-bounce-down" />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* ─── TWO-COLUMN MODE CARDS ─── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+        <div ref={modeCardsRef} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
           {/* Mode A Card — Teal */}
           <button
             onClick={() => handleModeSwitch('enhance')}
@@ -250,24 +294,26 @@ export const PromptPlayground: React.FC = () => {
         <div className="transition-opacity duration-200">
           {/* Mode A: Enhance */}
           {activeMode === 'enhance' && (
-            <div className="max-w-4xl animate-fade-in">
+            <div className="animate-fade-in">
               {/* Label */}
               <label htmlFor="prompt-input" className="block text-[14px] font-semibold text-[#1A202C] mb-2">
                 Paste or type your prompt below
               </label>
 
-              {/* Example pills */}
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="text-[13px] text-[#718096] italic">Try an example:</span>
-                {EXAMPLE_PROMPTS.map((example, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleExampleClick(example)}
-                    className="px-3.5 py-1.5 rounded-full text-[13px] border border-[#E2E8F0] bg-[#F7FAFC] text-[#4A5568] hover:border-[#38B2AC] hover:text-[#38B2AC] hover:bg-[#E6FFFA] transition-colors truncate max-w-[320px]"
-                  >
-                    {example}
-                  </button>
-                ))}
+              {/* Example pills — 3 per row, 2 rows */}
+              <div className="mb-3">
+                <span className="text-[13px] text-[#718096] italic mb-2 block">Try an example:</span>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {EXAMPLE_PROMPTS.map((example, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleExampleClick(example)}
+                      className="px-3.5 py-2 rounded-lg text-[13px] text-left border border-[#E2E8F0] bg-[#F7FAFC] text-[#4A5568] hover:border-[#38B2AC] hover:text-[#38B2AC] hover:bg-[#E6FFFA] transition-colors leading-snug"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Textarea */}
@@ -331,7 +377,7 @@ export const PromptPlayground: React.FC = () => {
 
           {/* Error */}
           {error && (
-            <div className="mt-6 max-w-4xl bg-[#FFF5F5] border border-[#FC8181] text-[#C53030] rounded-lg px-4 py-3 text-[14px]">
+            <div className="mt-6 bg-[#FFF5F5] border border-[#FC8181] text-[#C53030] rounded-lg px-4 py-3 text-[14px]">
               {error}
             </div>
           )}
@@ -385,7 +431,7 @@ export const PromptPlayground: React.FC = () => {
               </h2>
               <p className="text-[14px] text-[#718096] max-w-xl">
                 {result
-                  ? 'Your prompt has been structured into 6 optimized sections. Hover the info icon on each card to learn why it matters.'
+                  ? 'Your prompt has been structured into 6 optimized sections. Click the copy icon on any card to grab that section in markdown format.'
                   : 'Great prompts follow a proven structure. These are the 6 building blocks that transform a basic request into a high-quality AI output.'
                 }
               </p>
@@ -435,11 +481,12 @@ export const PromptPlayground: React.FC = () => {
                 const key = block.key as keyof PromptResult;
                 const content = result[key];
                 const isVisible = index < visibleBlocks;
+                const isSectionCopied = copiedSection === block.key;
 
                 return (
                   <div
                     key={block.key}
-                    className="rounded-[10px] px-5 py-4 transition-all duration-300 hover:shadow-md group flex flex-col"
+                    className="rounded-[10px] px-5 py-4 transition-all duration-300 hover:shadow-md group/card flex flex-col"
                     style={{
                       borderLeft: `4px solid ${block.color}`,
                       backgroundColor: `${block.color}26`,
@@ -449,22 +496,37 @@ export const PromptPlayground: React.FC = () => {
                       transition: 'opacity 0.4s ease, transform 0.4s ease, box-shadow 0.2s ease',
                     }}
                   >
-                    <div className="flex items-center justify-between mb-3">
+                    {/* Header: centered emoji + label */}
+                    <div className="flex flex-col items-center mb-3">
+                      <span className="text-lg mb-1.5">{block.icon}</span>
                       <span
                         className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[10px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[#1A202C]"
                         style={{ backgroundColor: block.color }}
                       >
-                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: block.color }} />
                         {block.label}
                       </span>
+                    </div>
+
+                    {/* Content */}
+                    <p className="text-[14px] text-[#2D3748] leading-[1.7] flex-1">{content}</p>
+
+                    {/* Footer: info + copy */}
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-black/5">
                       <div className="relative group/tip">
-                        <Info size={15} className="text-[#A0AEC0] cursor-help hover:text-[#718096] transition-colors" />
-                        <div className="absolute right-0 top-full mt-1 bg-[#1A202C] text-white text-[13px] leading-relaxed px-3 py-2 rounded-md max-w-[240px] opacity-0 pointer-events-none group-hover/tip:opacity-100 group-hover/tip:pointer-events-auto transition-opacity z-20 shadow-lg">
+                        <Info size={14} className="text-[#A0AEC0] cursor-help hover:text-[#718096] transition-colors" />
+                        <div className="absolute left-0 bottom-full mb-1 bg-[#1A202C] text-white text-[12px] leading-relaxed px-3 py-2 rounded-md max-w-[220px] opacity-0 pointer-events-none group-hover/tip:opacity-100 group-hover/tip:pointer-events-auto transition-opacity z-20 shadow-lg">
                           {block.description}
                         </div>
                       </div>
+                      <button
+                        onClick={() => handleCopySection(block.key, block.label, content)}
+                        className="flex items-center gap-1 text-[12px] text-[#A0AEC0] hover:text-[#38B2AC] transition-colors opacity-0 group-hover/card:opacity-100"
+                        title={`Copy ${block.label} as markdown`}
+                      >
+                        {isSectionCopied ? <Check size={12} /> : <Copy size={12} />}
+                        {isSectionCopied ? 'Copied' : 'Copy'}
+                      </button>
                     </div>
-                    <p className="text-[14px] text-[#2D3748] leading-[1.7] flex-1">{content}</p>
                   </div>
                 );
               })}
@@ -521,15 +583,18 @@ export const PromptPlayground: React.FC = () => {
                       minHeight: CARD_MIN_HEIGHT,
                     }}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[10px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[#1A202C]"
-                        style={{ backgroundColor: block.color }}
-                      >
-                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: block.color }} />
-                        {block.label}
-                      </span>
-                      <span className="text-[11px] font-bold text-[#A0AEC0]">{index + 1}/6</span>
+                    {/* Header: centered emoji + label */}
+                    <div className="flex flex-col items-center mb-3">
+                      <span className="text-lg mb-1.5">{block.icon}</span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[10px] text-[11px] font-semibold uppercase tracking-[0.04em] text-[#1A202C]"
+                          style={{ backgroundColor: block.color }}
+                        >
+                          {block.label}
+                        </span>
+                        <span className="text-[11px] font-bold text-[#A0AEC0]">{index + 1}/6</span>
+                      </div>
                     </div>
 
                     <p className="text-[14px] text-[#2D3748] leading-[1.6] mb-3 flex-1">
@@ -547,10 +612,10 @@ export const PromptPlayground: React.FC = () => {
           )}
 
           {/* Prompt Blueprint Legend */}
-          <div className="flex flex-wrap gap-x-5 gap-y-2 mb-6">
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 mb-6">
             {PROMPT_BLUEPRINT.map((block) => (
               <span key={block.key} className="flex items-center gap-1.5 text-[12px] text-[#718096]">
-                <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: block.color }} />
+                <span className="text-sm">{block.icon}</span>
                 {block.label}
               </span>
             ))}
@@ -580,8 +645,8 @@ export const PromptPlayground: React.FC = () => {
 
       {/* Toast */}
       {showToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1A202C] text-white text-[14px] px-5 py-2.5 rounded-lg shadow-lg z-50 animate-toast-enter">
-          Prompt copied to clipboard ✓
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1A202C] text-white text-[14px] px-5 py-2.5 rounded-lg shadow-lg z-50 animate-toast-enter whitespace-nowrap">
+          {toastMessage} ✓
         </div>
       )}
     </div>

@@ -201,13 +201,13 @@ export const LevelJourney: React.FC = () => {
                         {/* View Artefacts Link (Visible in Collapsed) */}
                         {!isExpanded && (
                           <a
-                            href={level.id === 1 ? '#playground' : undefined}
+                            href={level.id === 1 ? '#playground' : level.id === 2 ? '#agent-builder' : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (level.id !== 1) e.preventDefault();
+                              if (level.id !== 1 && level.id !== 2) e.preventDefault();
                             }}
                             className="text-[13px] font-semibold flex items-center gap-1 hover:underline"
-                            style={{ color: level.darkAccentColor, cursor: level.id === 1 ? 'pointer' : 'default', opacity: level.id === 1 ? 1 : 0.6 }}
+                            style={{ color: level.darkAccentColor, cursor: (level.id === 1 || level.id === 2) ? 'pointer' : 'default', opacity: (level.id === 1 || level.id === 2) ? 1 : 0.6 }}
                           >
                             View Artefacts <ArrowRight size={14} />
                           </a>
@@ -311,9 +311,10 @@ export const LevelJourney: React.FC = () => {
                       <button
                         onClick={() => {
                           if (level.id === 1) window.location.hash = '#playground';
+                          if (level.id === 2) window.location.hash = '#agent-builder';
                         }}
                         className="text-white text-[14px] font-semibold px-6 py-2.5 rounded-full transition-transform hover:-translate-y-0.5 shadow-sm flex items-center gap-2"
-                        style={{ backgroundColor: level.darkAccentColor, opacity: level.id === 1 ? 1 : 0.6, cursor: level.id === 1 ? 'pointer' : 'default' }}
+                        style={{ backgroundColor: level.darkAccentColor, opacity: (level.id === 1 || level.id === 2) ? 1 : 0.6, cursor: (level.id === 1 || level.id === 2) ? 'pointer' : 'default' }}
                       >
                         View Artefacts <ArrowRight size={14} />
                       </button>

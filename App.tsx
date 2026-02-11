@@ -5,11 +5,15 @@ import { LevelJourney } from './components/LevelJourney';
 import { Departments, LearningModel } from './components/Extras';
 import { Footer } from './components/Footer';
 import { PromptPlayground } from './components/PromptPlayground';
+import { AgentBuilder } from './components/AgentBuilder';
 
-type Page = 'home' | 'playground';
+type Page = 'home' | 'playground' | 'agent-builder';
 
 function getPageFromHash(): Page {
-  return window.location.hash === '#playground' ? 'playground' : 'home';
+  const hash = window.location.hash;
+  if (hash === '#playground') return 'playground';
+  if (hash === '#agent-builder') return 'agent-builder';
+  return 'home';
 }
 
 function App() {
@@ -27,21 +31,18 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-navy-900 selection:bg-teal selection:text-white">
-      {currentPage === 'home' ? (
+      <Navbar />
+      {currentPage === 'home' && (
         <>
-          <Navbar />
           <Hero />
           <LevelJourney />
           <Departments />
           <LearningModel />
           <Footer />
         </>
-      ) : (
-        <>
-          <Navbar />
-          <PromptPlayground />
-        </>
       )}
+      {currentPage === 'playground' && <PromptPlayground />}
+      {currentPage === 'agent-builder' && <AgentBuilder />}
     </div>
   );
 }
