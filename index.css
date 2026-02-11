@@ -109,3 +109,51 @@ body {
 .animate-bounce-down {
   animation: bounce-down 1.5s ease-in-out infinite;
 }
+
+/* Workflow Designer — Canvas & Animations */
+
+@keyframes node-appear {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-node-appear {
+  animation: node-appear 0.2s ease forwards;
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(280px); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.25s ease forwards;
+}
+
+@keyframes slide-up-sheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-slide-up-sheet {
+  animation: slide-up-sheet 0.25s ease forwards;
+}
+
+@keyframes draw-connection {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+.canvas-dotted-grid {
+  background-image: radial-gradient(circle, #E2E8F0 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+@keyframes slide-down-fade {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-down-fade {
+  animation: slide-down-fade 0.3s ease forwards;
+}

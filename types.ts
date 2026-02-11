@@ -111,3 +111,52 @@ export interface AgentDesignResult {
   system_prompt: string;
   accountability: AccountabilityCheck[];
 }
+
+// Workflow Designer types (Level 3)
+export type NodeLayer = 'input' | 'processing' | 'output';
+export type NodeStatus = 'unchanged' | 'added' | 'removed';
+export type WorkflowPath = 'a' | 'b';
+
+export interface NodeDefinition {
+  nodeId: string;
+  name: string;
+  icon: string;
+  layer: NodeLayer;
+  description: string;
+}
+
+export interface WorkflowNode {
+  id: string;
+  node_id: string;
+  name: string;
+  custom_description?: string;
+  layer: NodeLayer;
+  status?: NodeStatus;
+}
+
+export interface WorkflowGenerateResult {
+  workflow_name: string;
+  workflow_description: string;
+  nodes: WorkflowNode[];
+}
+
+export interface WorkflowChange {
+  type: 'added' | 'removed';
+  node_id: string;
+  node_name: string;
+  rationale: string;
+}
+
+export interface WorkflowFeedbackResult {
+  overall_assessment: string;
+  suggested_workflow: WorkflowNode[];
+  changes: WorkflowChange[];
+}
+
+export interface WorkflowDesignPayload {
+  mode: 'auto_generate' | 'feedback';
+  task_description: string;
+  tools_and_systems: string;
+  user_workflow?: WorkflowNode[];
+  user_rationale?: string;
+}

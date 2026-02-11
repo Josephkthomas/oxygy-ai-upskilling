@@ -201,13 +201,13 @@ export const LevelJourney: React.FC = () => {
                         {/* View Artefacts Link (Visible in Collapsed) */}
                         {!isExpanded && (
                           <a
-                            href={level.id === 1 ? '#playground' : level.id === 2 ? '#agent-builder' : undefined}
+                            href={level.id === 1 ? '#playground' : level.id === 2 ? '#agent-builder' : level.id === 3 ? '#workflow-designer' : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (level.id !== 1 && level.id !== 2) e.preventDefault();
+                              if (level.id !== 1 && level.id !== 2 && level.id !== 3) e.preventDefault();
                             }}
                             className="text-[13px] font-semibold flex items-center gap-1 hover:underline"
-                            style={{ color: level.darkAccentColor, cursor: (level.id === 1 || level.id === 2) ? 'pointer' : 'default', opacity: (level.id === 1 || level.id === 2) ? 1 : 0.6 }}
+                            style={{ color: level.darkAccentColor, cursor: (level.id === 1 || level.id === 2 || level.id === 3) ? 'pointer' : 'default', opacity: (level.id === 1 || level.id === 2 || level.id === 3) ? 1 : 0.6 }}
                           >
                             View Artefacts <ArrowRight size={14} />
                           </a>
@@ -312,9 +312,10 @@ export const LevelJourney: React.FC = () => {
                         onClick={() => {
                           if (level.id === 1) window.location.hash = '#playground';
                           if (level.id === 2) window.location.hash = '#agent-builder';
+                          if (level.id === 3) window.location.hash = '#workflow-designer';
                         }}
                         className="text-white text-[14px] font-semibold px-6 py-2.5 rounded-full transition-transform hover:-translate-y-0.5 shadow-sm flex items-center gap-2"
-                        style={{ backgroundColor: level.darkAccentColor, opacity: (level.id === 1 || level.id === 2) ? 1 : 0.6, cursor: (level.id === 1 || level.id === 2) ? 'pointer' : 'default' }}
+                        style={{ backgroundColor: level.darkAccentColor, opacity: (level.id === 1 || level.id === 2 || level.id === 3) ? 1 : 0.6, cursor: (level.id === 1 || level.id === 2 || level.id === 3) ? 'pointer' : 'default' }}
                       >
                         View Artefacts <ArrowRight size={14} />
                       </button>

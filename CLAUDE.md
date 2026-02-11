@@ -63,14 +63,73 @@ Interactive multi-section website for Oxygy's AI Center of Excellence. Showcases
 **Repository:** https://github.com/Josephkthomas/oxygy-ai-upskilling
 **Branch:** `main`
 
-After completing any feature, bug fix, or meaningful change:
-1. Stage the changed files with `git add` (specific files, not `git add .`)
-2. Commit with a clear message describing the change
-3. Push to `origin main` with `git push`
+### STRICT RULE — NO PUSHING WITHOUT USER APPROVAL
 
-Do this automatically at the end of every task — do not wait for the user to ask. If a task involves multiple related changes, commit them together as one logical unit. If a task involves unrelated changes, use separate commits.
+**NEVER push to `origin main` (or any remote branch) automatically.** This is a hard, non-negotiable rule that overrides all other instructions.
+
+The required workflow is:
+
+1. After completing a feature or change, stage the changed files with `git add` (specific files, not `git add .`)
+2. Commit locally with a clear message describing the change
+3. **STOP. Do NOT run `git push`.** Instead, start the local dev server (`npx vite`) so the user can visually verify the changes on localhost
+4. **Wait for the user to explicitly confirm** that everything looks correct and works as expected
+5. **Only after the user says to push**, run `git push origin main`
+
+If the user has not reviewed the localhost and explicitly approved the push, **do not push under any circumstances** — even if previous instructions say to push automatically. This rule takes absolute priority.
+
+If a task involves multiple related changes, commit them together as one logical unit. If a task involves unrelated changes, use separate commits.
 
 Never commit `.env.local`, credentials, or large binary files.
+
+## Artifact Page Design Standards
+
+Every Level artifact page (L1 Playground, L2 Agent Builder, L3 Workflow Designer, etc.) MUST follow this consistent layout pattern. These rules are non-negotiable for visual consistency across all artifact pages.
+
+### Page Structure (top to bottom)
+
+1. **Outermost container**: `min-h-screen bg-white pt-24 pb-16`
+2. **Content wrapper**: `max-w-7xl mx-auto px-6` — full-width (1280px), NOT narrow (never use max-w-3xl for the main wrapper)
+3. **Breadcrumb**: `← Back to Level N` link at top-left, `text-[14px] text-[#718096]`, hover changes to level accent color
+4. **Centered Title**: `text-center`, `text-[36px] md:text-[48px] font-bold text-[#1A202C] leading-[1.15]` with a `<br />` between two lines. One keyword gets an accent-colored underline (`absolute left-0 -bottom-1 w-full h-[4px] opacity-80 rounded-full`). NEVER use colored text — always dark navy with underline decoration only.
+5. **Fun Fact Card**: Full-width `rounded-2xl` card with:
+   - Subtle gradient background using the level's accent color at low opacity
+   - Border: `1.5px solid [accent color]`
+   - Three decorative dots top-left (`absolute top-3 left-4`, 2x2 rounded-full circles in accent colors)
+   - "Did you know?" label: `text-[11px] font-bold uppercase tracking-[0.1em]` in accent color
+   - Main fact: `text-[17px] md:text-[19px] font-medium text-[#2D3748] leading-[1.6]` with a key stat bolded in accent color
+   - Supporting text: `text-[15px] text-[#718096] leading-[1.6]`
+   - Text centered (`text-center`)
+6. **Input Section**: Wrapped in a visually distinct colored card:
+   - Background: subtle gradient using the level's accent color (e.g., lavender for L2, pale yellow for L3)
+   - Border: `1.5px solid [accent color]`
+   - Rounded: `rounded-2xl`
+   - Padding: `p-6 sm:p-8`
+   - Contains: example pills, labeled textareas, CTA button, optional callout
+   - Textarea border color matches accent color (`border-2 border-[accent]`)
+   - Focus state: `focus:border-[darker accent] focus:ring-[3px]`
+7. **Results/Output Section**: Full-width cards, accordions, or canvas depending on the level
+8. **Bottom Actions**: `Start Over` button + link to next level
+
+### Level Accent Colors (for artifact pages)
+
+| Level | Accent Light | Accent Dark | Use For |
+|-------|-------------|-------------|---------|
+| L1 | `#38B2AC` (Teal) | `#2C9A94` | Underline, fun fact, buttons, focus |
+| L2 | `#C3D0F5` (Lavender) | `#5B6DC2` | Underline, fun fact, input card bg, buttons |
+| L3 | `#FBE8A6` (Pale Yellow) | `#C4A934` | Underline, fun fact, input card bg, buttons |
+| L4 | `#FBCEB1` (Soft Peach) | `#D97B4A` | Underline, fun fact, input card bg, buttons |
+| L5 | `#38B2AC` (Teal) | `#2C9A94` | Underline, fun fact, input card bg, buttons |
+
+### Rules
+
+- Title is ALWAYS centered (`text-center`), NEVER left-aligned
+- Fun fact card is ALWAYS present, NEVER omitted
+- Input section ALWAYS has a colored background card, NEVER plain white
+- Content uses `max-w-7xl` (full-width layout), NOT `max-w-3xl` or narrower
+- Every artifact page has a breadcrumb, centered title, fun fact, input section, and results section in that order
+- Toast notifications: fixed bottom-center, dark navy bg, white text
+- Example pills are inline flex-wrap, styled with the level's accent border/bg
+- CTA buttons use the level's dark accent color as background with white text
 
 ## Reference
 - Full content spec: OXYGY_AI_UPSKILLING_SYSTEM_PROMPT.md

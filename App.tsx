@@ -6,13 +6,15 @@ import { Departments, LearningModel } from './components/Extras';
 import { Footer } from './components/Footer';
 import { PromptPlayground } from './components/PromptPlayground';
 import { AgentBuilder } from './components/AgentBuilder';
+import { WorkflowDesigner } from './components/WorkflowDesigner';
 
-type Page = 'home' | 'playground' | 'agent-builder';
+type Page = 'home' | 'playground' | 'agent-builder' | 'workflow-designer';
 
 function getPageFromHash(): Page {
   const hash = window.location.hash;
   if (hash === '#playground') return 'playground';
   if (hash === '#agent-builder') return 'agent-builder';
+  if (hash === '#workflow-designer') return 'workflow-designer';
   return 'home';
 }
 
@@ -43,6 +45,7 @@ function App() {
       )}
       {currentPage === 'playground' && <PromptPlayground />}
       {currentPage === 'agent-builder' && <AgentBuilder />}
+      {currentPage === 'workflow-designer' && <WorkflowDesigner />}
     </div>
   );
 }
