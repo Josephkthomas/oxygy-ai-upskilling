@@ -30,23 +30,29 @@ const outerPositions = ringPositions(6, OUTER_RADIUS, 30);
 
 // ── Scroll-progress ranges from the PRD ──────────────────────────────
 const RANGES = {
-  badge: [0, 0.05],
-  headline: [0.05, 0.15],
-  center: [0.15, 0.25],
-  subCta: [0.20, 0.30],
-  innerRing: [0.25, 0.45],
-  innerNodes: [0.30, 0.50],
-  innerLabel: [0.45, 0.50],
-  outerRing: [0.50, 0.70],
-  outerNodes: [0.55, 0.75],
-  outerLabel: [0.70, 0.75],
-  lines: [0.75, 0.85],
+  badge: [0, 0.06],
+  headline: [0.04, 0.16],
+  center: [0.12, 0.24],
+  subCta: [0.16, 0.28],
+  innerRing: [0.22, 0.44],
+  innerNodes: [0.28, 0.50],
+  innerLabel: [0.42, 0.50],
+  outerRing: [0.46, 0.66],
+  outerNodes: [0.52, 0.72],
+  outerLabel: [0.66, 0.74],
+  lines: [0.70, 0.82],
 } as const;
+
+// Ease-out cubic for smooth deceleration at the end of each transition
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
 
 function lerp(progress: number, start: number, end: number): number {
   if (progress <= start) return 0;
   if (progress >= end) return 1;
-  return (progress - start) / (end - start);
+  const t = (progress - start) / (end - start);
+  return easeOutCubic(t);
 }
 
 // ── Tooltip Component ────────────────────────────────────────────────
@@ -417,8 +423,8 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
         {innerPositions.map((pos, i) => {
           const nodeProgress = lerp(
             p,
-            RANGES.innerNodes[0] + (i * 0.033),
-            RANGES.innerNodes[0] + (i * 0.033) + 0.04,
+            RANGES.innerNodes[0] + (i * 0.018),
+            RANGES.innerNodes[0] + (i * 0.018) + 0.04,
           );
           const scale = nodeProgress;
           const driver = innerDrivers[i];
@@ -495,8 +501,8 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
         {outerPositions.map((pos, i) => {
           const nodeProgress = lerp(
             p,
-            RANGES.outerNodes[0] + (i * 0.033),
-            RANGES.outerNodes[0] + (i * 0.033) + 0.04,
+            RANGES.outerNodes[0] + (i * 0.018),
+            RANGES.outerNodes[0] + (i * 0.018) + 0.04,
           );
           const scale = nodeProgress;
           const driver = outerDrivers[i];
@@ -572,12 +578,13 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
       </svg>
 
       {/* Ring labels (HTML overlays) */}
-      {/* "What You Bring" — inner ring label, top-left area */}
+      {/* "What Your People Bring" — centered between inner & outer rings, above Brain icon */}
       <div
         style={{
           position: 'absolute',
-          top: '4%',
-          left: '12%',
+          top: '18%',
+          left: '50%',
+          transform: 'translateX(-50%)',
           opacity: innerLabelOpacity,
           transition: reducedMotion ? 'none' : undefined,
         }}
@@ -601,12 +608,13 @@ const ConcentricCircles: React.FC<DiagramProps> = ({
         </span>
       </div>
 
-      {/* "What We Provide" — outer ring label, bottom-right area */}
+      {/* "What We Provide" — centered below outer yellow ring */}
       <div
         style={{
           position: 'absolute',
-          bottom: '8%',
-          right: '2%',
+          bottom: '4%',
+          left: '50%',
+          transform: 'translateX(-50%)',
           opacity: outerLabelOpacity,
           transition: reducedMotion ? 'none' : undefined,
         }}
@@ -670,24 +678,37 @@ export const Hero: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Scroll handler
+  // Scroll handler — uses smooth interpolation for fluid animation
   useEffect(() => {
     if (isMobile || prefersReducedMotion) return;
 
+    const target = { value: 0 };
+    const current = { value: 0 };
+
     const handleScroll = () => {
-      rafRef.current = requestAnimationFrame(() => {
-        const section = sectionRef.current;
-        if (!section) return;
-        const rect = section.getBoundingClientRect();
-        const scrollableHeight = section.offsetHeight - window.innerHeight;
-        if (scrollableHeight <= 0) return;
-        const raw = -rect.top / scrollableHeight;
-        setScrollProgress(Math.max(0, Math.min(1, raw)));
-      });
+      const section = sectionRef.current;
+      if (!section) return;
+      const rect = section.getBoundingClientRect();
+      const scrollableHeight = section.offsetHeight - window.innerHeight;
+      if (scrollableHeight <= 0) return;
+      const raw = -rect.top / scrollableHeight;
+      target.value = Math.max(0, Math.min(1, raw));
+    };
+
+    const tick = () => {
+      const diff = target.value - current.value;
+      if (Math.abs(diff) > 0.00005) {
+        current.value += diff * 0.12;
+        setScrollProgress(current.value);
+      }
+      rafRef.current = requestAnimationFrame(tick);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
+    current.value = target.value;
+    setScrollProgress(current.value);
+    rafRef.current = requestAnimationFrame(tick);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -717,9 +738,9 @@ export const Hero: React.FC = () => {
       {/* Scroll runway height (desktop only) */}
       {!noAnim && (
         <style>{`
-          #hero { height: 200vh; }
+          #hero { height: 300vh; }
           @media (min-width: 768px) and (max-width: 1199px) {
-            #hero { height: 180vh; }
+            #hero { height: 260vh; }
           }
         `}</style>
       )}
@@ -766,7 +787,7 @@ export const Hero: React.FC = () => {
                   letterSpacing: '1.5px',
                 }}
               >
-                AI CENTER OF EXCELLENCE
+                OXYGY AI CENTER OF EXCELLENCE
               </span>
             </div>
 
