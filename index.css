@@ -5,3 +5,107 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Prompt Playground Animations */
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes skeleton-shimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+
+@keyframes pulse-tab {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes pulse-mic {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 160, 23, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(212, 160, 23, 0.3); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out;
+}
+
+.animate-skeleton {
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.animate-pulse-tab {
+  animation: pulse-tab 1.5s ease-in-out 1;
+}
+
+/* Progress bar fill effect — liquid/energy feel */
+@keyframes progress-glow {
+  0%, 100% { box-shadow: 0 0 6px rgba(56, 178, 172, 0.3); }
+  50% { box-shadow: 0 0 14px rgba(56, 178, 172, 0.6); }
+}
+
+.progress-bar-fill {
+  background: linear-gradient(90deg, #2C9A94 0%, #38B2AC 40%, #4FD1C5 70%, #38B2AC 100%);
+  background-size: 200% 100%;
+  animation: progress-glow 2s ease-in-out infinite, progress-shimmer 3s linear infinite;
+}
+
+@keyframes progress-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Progress bar fill — yellow variant for Mode B */
+@keyframes progress-glow-yellow {
+  0%, 100% { box-shadow: 0 0 6px rgba(212, 160, 23, 0.3); }
+  50% { box-shadow: 0 0 14px rgba(212, 160, 23, 0.6); }
+}
+
+.progress-bar-fill-yellow {
+  background: linear-gradient(90deg, #B8900F 0%, #D4A017 40%, #F7E8A4 70%, #D4A017 100%);
+  background-size: 200% 100%;
+  animation: progress-glow-yellow 2s ease-in-out infinite, progress-shimmer 3s linear infinite;
+}
+
+/* Celebration confetti burst */
+@keyframes confetti-pop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-confetti-pop {
+  animation: confetti-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Toast slide up and stay */
+@keyframes toast-enter {
+  0% { transform: translate(-50%, 20px); opacity: 0; }
+  100% { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.animate-toast-enter {
+  animation: toast-enter 0.3s ease-out;
+}
+
+/* Bounce arrow */
+@keyframes bounce-down {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
+.animate-bounce-down {
+  animation: bounce-down 1.5s ease-in-out infinite;
+}
